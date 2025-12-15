@@ -1,0 +1,123 @@
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import Reporter from "../models/reporterModel.js";
+import NGO from "../models/ngoModel.js";
+import Admin from "../models/adminModel.js";
+
+// Helper to generate Token
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET || "secret123", {
+    expiresIn: "30d",
+  });
+};
+
+// 1. Reporter Registration
+export const registerReporter = async (data) => {
+  const { name, phone, password } = data;
+  const existing = await Reporter.findOne({ phone });
+  if (existing) throw new Error("Phone number already registered");
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const reporter = await Reporter.create({
+    name,
+    phone,
+    password: hashedPassword,
+  });
+
+  return {
+    user: { id: reporter._id, name: reporter.name, role: "reporter" },
+    token: generateToken(reporter._id, "reporter"),
+  };
+};
+
+// 2. NGO Registration
+export const registerNGO = async (data) => {
+  const {
+    name,
+    email,
+    phone,
+    password,
+    registration_number,
+    latitude,
+    longitude,
+  } = data;
+
+  const existing = await NGO.findOne({
+    $or: [{ email }, { registration_number }],
+  });
+  if (existing)
+    throw new Error("NGO already exists with this email or license");
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const ngo = await NGO.create({
+    name,
+    email,
+    phone,
+    password: hashedPassword,
+    registration_number,
+    owner_name: name,
+    location: { type: "Point", coordinates: [longitude, latitude] },
+  });
+
+  return {
+    user: { id: ngo._id, name: ngo.name, role: "ngo" },
+    token: generateToken(ngo._id, "ngo"),
+  };
+};
+
+// 3. Admin: Force Create Trusted NGO (Bypasses Verification)
+export const createTrustedNGO = async (data, adminId) => {
+  const { name, email, phone, password, latitude, longitude } = data;
+
+  // Admin doesn't need to provide a registration number if they trust the NGO
+  // But we generate a dummy one to satisfy the unique index if needed, or make it optional in schema
+  // Let's assume we provide a manual ID like "TRUSTED_BY_ADMIN_001"
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const ngo = await NGO.create({
+    name,
+    email,
+    phone,
+    password: hashedPassword,
+    registration_number:
+      data.registration_number || `ADMIN_VERIFIED_${Date.now()}`,
+    owner_name: "Admin Added",
+    location: { type: "Point", coordinates: [longitude, latitude] },
+    verification_status: "verified", // 👈 THE MAGIC KEY
+    impact_score: 50, // Give them a head start?
+  });
+
+  // Log this action (Optional but good for security)
+  await Admin.findByIdAndUpdate(adminId, {
+    $push: {
+      action_logs: {
+        action: "Created Trusted NGO",
+        target_id: ngo._id,
+        timestamp: new Date(),
+      },
+    },
+  });
+
+  return ngo;
+};
+
+export const loginUser = async (identifier, password, role) => {
+  let user;
+
+  if (role === "reporter") user = await Reporter.findOne({ phone: identifier });
+  else if (role === "ngo") user = await NGO.findOne({ email: identifier });
+  else if (role === "admin")
+    user = await Admin.findOne({ username: identifier });
+
+  if (!user) throw new Error("User not found");
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) throw new Error("Invalid credentials");
+
+  return {
+    user: { id: user._id, name: user.name, role },
+    token: generateToken(user._id, role),
+  };
+};
