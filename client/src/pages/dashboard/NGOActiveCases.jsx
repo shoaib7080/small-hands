@@ -7,39 +7,45 @@ import L from "leaflet";
 import api from "../../services/api";
 import "leaflet/dist/leaflet.css";
 
-// Custom Icons for Map Pins
-const redIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+// --- ICONS CONFIGURATION ---
+const createIcon = (url, size) =>
+  new L.Icon({
+    iconUrl: url,
+    shadowUrl:
+      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
+    iconSize: size, // [width, height]
+    iconAnchor: [size[0] / 2, size[1]], // Bottom center
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41],
+  });
 
-const greenIcon = new L.Icon({
-  iconUrl:
-    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-});
+const redUrl =
+  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png";
+const greenUrl =
+  "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png";
 
-// Helper: Refreshes map layout when shown/hidden
-const MapInvalidator = ({ mobileView }) => {
+// Standard Icons
+const redIcon = createIcon(redUrl, [25, 41]);
+const greenIcon = createIcon(greenUrl, [25, 41]);
+
+// Highlighted Icons (Bigger)
+const redIconBig = createIcon(redUrl, [35, 57]);
+const greenIconBig = createIcon(greenUrl, [35, 57]);
+
+const MapController = ({ centerLocation, mobileView }) => {
   const map = useMap();
 
   useEffect(() => {
-    // Wait 100ms for the CSS transition to finish, then fix map size
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 100);
-  }, [mobileView, map]); // Run whenever mobileView changes
+    // Fix Map Grey Area on Tab Switch
+    setTimeout(() => map.invalidateSize(), 200);
+  }, [mobileView, map]);
+
+  useEffect(() => {
+    // Fly to location if user clicked "Locate"
+    if (centerLocation) {
+      map.flyTo(centerLocation, 15, { animate: true });
+    }
+  }, [centerLocation, map]);
 
   return null;
 };
@@ -55,47 +61,55 @@ const NGOActiveCases = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [proofFile, setProofFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [resolveModalId, setResolveModalId] = useState(null); // For "Mark Resolved"
+  const [viewingReport, setViewingReport] = useState(null);
+
+  // LOGIC STATES
+  const [highlightedId, setHighlightedId] = useState(null); // Which pin is big?
+  const [mapCenter, setMapCenter] = useState(null);
 
   const socketRef = useRef();
   const user = JSON.parse(localStorage.getItem("user"));
 
   // 1. Initialize Data & Socket
   useEffect(() => {
-    const getGeoLocation = () => {
-      if (!navigator.geolocation) {
-        useFallbackLocation();
-        return;
-      }
+    const initializeDashboard = async () => {
+      try {
+        // Get NGO's registered location from database
+        const { data } = await api.get("/auth/me");
+        const ngoData = data.data;
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          initializeDashboard(latitude, longitude);
-        },
-        (err) => {
-          console.error("Geo Error:", err);
-          toast.warn("Location access denied. Using default view.");
+        if (ngoData.location && ngoData.location.coordinates) {
+          const [longitude, latitude] = ngoData.location.coordinates;
+          setNgoLocation([latitude, longitude]); // Note: Leaflet uses [lat, lng]
+          fetchNearbyReports(latitude, longitude);
+        } else {
+          // Fallback if no location in database
+          toast.warn("NGO location not set. Please update your profile.");
           useFallbackLocation();
-        },
-        { timeout: 5000 } // Don't wait more than 5 seconds
-      );
+        }
+      } catch (err) {
+        console.error("Failed to get NGO location:", err);
+        useFallbackLocation();
+      }
     };
 
     const useFallbackLocation = () => {
-      // Default to New Delhi (or set this to your city)
-      initializeDashboard(28.6139, 77.209);
-    };
-
-    const initializeDashboard = (lat, lng) => {
+      // Default to New Delhi
+      const lat = 28.6139;
+      const lng = 77.209;
       setNgoLocation([lat, lng]);
       fetchNearbyReports(lat, lng);
     };
 
-    getGeoLocation();
+    initializeDashboard();
 
-    socketRef.current = io("http://localhost:5000");
+    const SOCKET_URL =
+      import.meta.env.VITE_API_URL?.replace("/api", "") ||
+      "http://localhost:5000";
+    socketRef.current = io(SOCKET_URL);
     socketRef.current.on("new_report", (data) => {
-      toast.info(`🚨 New Alert: ${data.report.type}`);
+      toast.info(`New Alert: ${data.report.type}`);
       setReports((prev) => [data.report, ...prev]);
     });
 
@@ -163,7 +177,7 @@ const NGOActiveCases = () => {
     }
   };
 
-  // 👇 NEW: Handle Resolution
+  // Handle Resolution
   const handleResolveSubmit = async (e) => {
     e.preventDefault();
     if (!proofFile) return toast.error("Please upload proof!");
@@ -189,6 +203,17 @@ const NGOActiveCases = () => {
     }
   };
 
+  //Handle "Locate on Map"
+  const handleLocate = (report) => {
+    setHighlightedId(report._id);
+    setMapCenter([
+      report.location.coordinates[1],
+      report.location.coordinates[0],
+    ]);
+    setMobileView("map");
+    setViewingReport(null);
+  };
+
   const displayedReports = reports;
 
   if (!ngoLocation)
@@ -201,7 +226,7 @@ const NGOActiveCases = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-gray-100 relative">
-      {/* 1. Header with Tabs */}
+      {/* HEADER (Mobile) */}
       <div className="md:hidden bg-blue-800 text-white p-4 flex flex-col gap-2 shadow-md z-20">
         <div className="flex justify-between items-center">
           <Link to="/dashboard/ngo" className="font-bold">
@@ -210,7 +235,6 @@ const NGOActiveCases = () => {
           <span className="font-bold">Live Console</span>
           <div className="w-10"></div>
         </div>
-        {/* Mobile Tabs */}
         <div className="flex bg-blue-900 rounded p-1 mt-2">
           <button
             onClick={() => setFilter("all")}
@@ -235,12 +259,11 @@ const NGOActiveCases = () => {
         </div>
       </div>
 
-      {/* 2. LIST VIEW */}
+      {/* LIST VIEW */}
       <div
-        className={`
-        w-full md:w-1/3 bg-white border-r flex-col shadow-lg z-10 h-full
-        ${mobileView === "list" ? "flex" : "hidden md:flex"}
-      `}
+        className={`w-full md:w-1/3 bg-white border-r flex-col shadow-lg z-10 h-full ${
+          mobileView === "list" ? "flex" : "hidden md:flex"
+        }`}
       >
         <div className="hidden md:block p-4 bg-blue-800 text-white">
           <Link
@@ -249,11 +272,7 @@ const NGOActiveCases = () => {
           >
             ← Back to Dashboard
           </Link>
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-xl font-bold">Active Cases</h1>
-          </div>
-          {/* Desktop Tabs */}
-          <div className="flex bg-blue-900 rounded p-1">
+          <div className="flex bg-blue-900 rounded p-1 mt-2">
             <button
               onClick={() => setFilter("all")}
               className={`flex-1 py-1 text-sm rounded ${
@@ -278,14 +297,8 @@ const NGOActiveCases = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <p className="text-xs text-gray-500 font-bold uppercase">
-            {filter === "all" ? "Live Feed" : "Your Ongoing Missions"}
-          </p>
-
           {displayedReports.length === 0 && (
-            <p className="text-gray-400 text-sm text-center py-10">
-              No reports found.
-            </p>
+            <p className="text-center py-10 text-gray-400">No reports found.</p>
           )}
 
           {displayedReports.map((report) => {
@@ -296,7 +309,8 @@ const NGOActiveCases = () => {
             return (
               <div
                 key={report._id}
-                className={`p-4 rounded-lg border-l-4 shadow-sm ${
+                onClick={() => setViewingReport(report)} // Open Detail Modal on Click
+                className={`p-4 rounded-lg border-l-4 shadow-sm cursor-pointer transition hover:shadow-md ${
                   isMyClaim
                     ? "border-green-500 bg-green-50"
                     : "border-red-500 bg-white"
@@ -311,74 +325,71 @@ const NGOActiveCases = () => {
                     })}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                   {report.description}
                 </p>
-
-                {/* ACTION BUTTONS */}
-                {isMyClaim ? (
-                  <button
-                    onClick={() => setSelectedReport(report._id)} // Open Modal
-                    className="mt-3 w-full bg-green-600 text-white text-sm font-bold py-2 rounded hover:bg-green-700 flex items-center justify-center gap-2"
-                  >
-                    ✅ Mark Resolved
-                  </button>
-                ) : report.status === "Open" ? (
-                  <button
-                    onClick={() => handleClaim(report._id)}
-                    className="mt-3 w-full bg-red-100 text-red-700 text-sm font-bold py-2 rounded hover:bg-red-200"
-                  >
-                    Claim Case
-                  </button>
-                ) : (
-                  <span className="mt-3 block text-center text-xs font-bold text-gray-400">
-                    Locked (Other NGO)
-                  </span>
-                )}
+                <p className="text-xs text-blue-600 mt-2 font-bold underline">
+                  View Details &gt;
+                </p>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* 3. MAP VIEW (Visible if Desktop OR (Mobile & view='map')) */}
+      {/* MAP VIEW */}
       <div
-        className={`
-        w-full md:w-2/3 relative h-full
-        ${mobileView === "map" ? "block" : "hidden md:block"}
-      `}
+        className={`w-full md:w-2/3 relative h-full ${
+          mobileView === "map" ? "block" : "hidden md:block"
+        }`}
       >
         <MapContainer
           center={ngoLocation}
           zoom={13}
           style={{ height: "100%", width: "100%" }}
         >
-          <MapInvalidator mobileView={mobileView} />
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+          <MapController centerLocation={mapCenter} mobileView={mobileView} />
+
           <Marker position={ngoLocation}>
             <Popup>HQ</Popup>
           </Marker>
-          {displayedReports.map((report) => (
-            <Marker
-              key={report._id}
-              position={[
-                report.location.coordinates[1],
-                report.location.coordinates[0],
-              ]}
-              icon={report.status === "Open" ? redIcon : greenIcon}
-            >
-              <Popup>
-                <div className="min-w-[150px]">
-                  <h3 className="font-bold">{report.type}</h3>
-                  <p className="text-sm my-1">{report.description}</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+
+          {displayedReports.map((report) => {
+            const isHighlighted = report._id === highlightedId;
+            const isClaimed = report.status === "Claimed";
+            // Logic: If highlighted, use BIG icon. Else use normal red/green.
+            let icon = isClaimed ? greenIcon : redIcon;
+            if (isHighlighted) icon = isClaimed ? greenIconBig : redIconBig;
+
+            return (
+              <Marker
+                key={report._id}
+                position={[
+                  report.location.coordinates[1],
+                  report.location.coordinates[0],
+                ]}
+                icon={icon}
+              >
+                <Popup>
+                  <div className="min-w-[150px]">
+                    <h3 className="font-bold">{report.type}</h3>
+                    <button
+                      onClick={() => setViewingReport(report)}
+                      className="text-blue-600 underline text-xs"
+                    >
+                      View Full Details
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
       </div>
 
-      {/* MOBILE VIEW */}
+      {/* MOBILE TOGGLE BUTTON */}
       <div className="md:hidden absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1000]">
         <button
           onClick={() => setMobileView(mobileView === "list" ? "map" : "list")}
@@ -387,18 +398,126 @@ const NGOActiveCases = () => {
           {mobileView === "list" ? <>🗺️ Map</> : <>📋 List</>}
         </button>
       </div>
-      {/* 5. RESOLUTION MODAL */}
-      {selectedReport && (
-        <div className="absolute inset-0 z-[2000] bg-black bg-opacity-50 flex items-center justify-center p-4">
+
+      {/* --- MODAL 1: VIEW DETAILS --- */}
+      {viewingReport && (
+        <div className="absolute inset-0 z-[2000] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="bg-gray-100 p-4 border-b flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-800">
+                Report Details
+              </h2>
+              <button
+                onClick={() => setViewingReport(null)}
+                className="text-gray-500 hover:text-gray-800 text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="p-6 overflow-y-auto">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                      viewingReport.severity === "High"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {viewingReport.severity} Severity
+                  </span>
+                  <h1 className="text-2xl font-bold mt-2">
+                    {viewingReport.type}
+                  </h1>
+                  <p className="text-gray-500 text-sm">
+                    Reported:{" "}
+                    {new Date(viewingReport.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                {/* 🎯 THE LOCATE BUTTON */}
+                <button
+                  onClick={() => handleLocate(viewingReport)}
+                  className="flex flex-col items-center justify-center text-blue-600 hover:bg-blue-50 p-2 rounded transition"
+                >
+                  <span className="text-2xl">📍</span>
+                  <span className="text-xs font-bold">Locate</span>
+                </button>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg mb-4 border">
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {viewingReport.description}
+                </p>
+              </div>
+
+              {/* Images Grid */}
+              {viewingReport.images && viewingReport.images.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-bold text-sm text-gray-500 mb-2">
+                    ATTACHED EVIDENCE
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {viewingReport.images.map((img, i) => (
+                      <img
+                        key={i}
+                        src={img}
+                        alt="Evidence"
+                        className="w-full h-32 object-cover rounded-lg border hover:scale-105 transition"
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-4 border-t bg-gray-50 flex gap-3">
+              {/* Logic to show Claim or Resolve buttons inside detail modal */}
+              {viewingReport.claimed_by &&
+              (viewingReport.claimed_by._id === user.id ||
+                viewingReport.claimed_by === user.id) ? (
+                <button
+                  onClick={() => {
+                    setViewingReport(null);
+                    setResolveModalId(viewingReport._id);
+                  }}
+                  className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow"
+                >
+                  ✅ Mark as Resolved
+                </button>
+              ) : viewingReport.status === "Open" ? (
+                <button
+                  onClick={() => {
+                    handleClaim(viewingReport._id);
+                    setViewingReport(null);
+                  }}
+                  className="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 shadow"
+                >
+                  ✋ Claim This Case
+                </button>
+              ) : (
+                <div className="w-full text-center py-3 text-gray-500 font-bold bg-gray-200 rounded-lg">
+                  Locked (Assigned to other)
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 2: RESOLVE (Upload Proof) --- */}
+      {resolveModalId && (
+        <div className="absolute inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-2xl">
             <h3 className="text-lg font-bold text-gray-800 mb-2">
               Complete Mission
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Upload a photo to prove aid was delivered. This rewards the
-              citizen with Karma.
+              Upload a photo to prove aid was delivered.
             </p>
-
             <form onSubmit={handleResolveSubmit}>
               <input
                 type="file"
@@ -407,22 +526,21 @@ const NGOActiveCases = () => {
                 className="w-full border p-2 rounded mb-4 text-sm"
                 required
               />
-
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedReport(null);
+                    setResolveModalId(null);
                     setProofFile(null);
                   }}
-                  className="flex-1 py-2 text-gray-600 hover:bg-gray-100 rounded font-medium"
+                  className="flex-1 py-2 text-gray-600 hover:bg-gray-100 rounded"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="flex-1 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700 disabled:opacity-50"
+                  className="flex-1 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700"
                 >
                   {uploading ? "Uploading..." : "Confirm"}
                 </button>
