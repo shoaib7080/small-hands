@@ -70,9 +70,8 @@ export const registerNGO = async (data) => {
 export const createTrustedNGO = async (data, adminId) => {
   const { name, email, phone, password, latitude, longitude } = data;
 
-  // Admin doesn't need to provide a registration number if they trust the NGO
-  // But we generate a dummy one to satisfy the unique index if needed, or make it optional in schema
-  // Let's assume we provide a manual ID like "TRUSTED_BY_ADMIN_001"
+  const existing = await NGO.findOne({ email: data.email });
+  if (existing) throw new Error("Email already registered");
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -85,8 +84,7 @@ export const createTrustedNGO = async (data, adminId) => {
       data.registration_number || `ADMIN_VERIFIED_${Date.now()}`,
     owner_name: "Admin Added",
     location: { type: "Point", coordinates: [longitude, latitude] },
-    verification_status: "verified", // 👈 THE MAGIC KEY
-    impact_score: 50, // Give them a head start?
+    verification_status: "verified",
   });
 
   // Log this action (Optional but good for security)

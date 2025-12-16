@@ -101,12 +101,12 @@ const ReporterHome = () => {
       </MapContainer>
 
       {/* 4. Floating Action Button (FAB) */}
-      <div className="absolute bottom-10 right-10 z-[1000]">
+      <div className="fixed bottom-4 right-4 md:bottom-10 md:right-10 z-[1000] max-w-[calc(100vw-2rem)]">
         {/* Only show button if location is picked */}
         {coords && !showModal && (
           <button
             onClick={() => setShowModal(true)}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-full shadow-2xl text-xl animate-bounce"
+            className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 md:py-4 md:px-6 rounded-full shadow-2xl text-sm md:text-xl animate-bounce whitespace-nowrap"
           >
             + Report Need Here
           </button>
@@ -114,8 +114,8 @@ const ReporterHome = () => {
 
         {/* Instruction if no location picked */}
         {!coords && (
-          <div className="bg-white p-3 rounded-lg shadow-lg text-gray-700 font-medium">
-            👇 Tap map to pin location
+          <div className="bg-white p-2 md:p-3 rounded-lg shadow-lg text-gray-700 font-medium text-sm md:text-base max-w-[200px] text-center">
+            Tap map to pin location
           </div>
         )}
       </div>

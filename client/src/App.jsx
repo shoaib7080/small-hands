@@ -12,6 +12,11 @@ import Navbar from "./components/common/Navbar";
 import LandingPage from "./pages/home/LandingPage";
 import Leaderboard from "./pages/home/Leaderboard";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminNGOs from "./pages/admin/AdminNGOs";
+import AdminReporters from "./pages/admin/AdminReporters";
+import AdminReports from "./pages/admin/AdminReports";
 
 function App() {
   return (
@@ -37,15 +42,16 @@ function App() {
           <Route path="/dashboard/ngo/live" element={<NGOActiveCases />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-          <Route
-            path="/admin"
-            element={
-              <div className="p-10 text-2xl font-bold">
-                Admin Panel Coming Soon
-              </div>
-            }
-          />
+        <Route
+          element={<ProtectedRoute allowedRoles={["admin", "super_admin"]} />}
+        >
+          {/* The Layout wraps all admin pages */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} /> {/* /admin */}
+            <Route path="ngos" element={<AdminNGOs />} /> {/* /admin/ngos */}
+            <Route path="reporters" element={<AdminReporters />} />
+            <Route path="reports" element={<AdminReports />} />
+          </Route>
         </Route>
 
         {/* 404 Handler */}

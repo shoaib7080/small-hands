@@ -77,6 +77,17 @@ export const getNearbyReports = async (req, res, next) => {
 // 3. Claim a Report (NGO Only)
 export const claimReport = async (req, res, next) => {
   try {
+    if (
+      req.user.role === "ngo" &&
+      req.user.verification_status !== "verified"
+    ) {
+      return res.status(403).json({
+        status: "fail",
+        message:
+          "Your account is pending verification. You cannot perform this action yet.",
+      });
+    }
+
     const { id } = req.params;
 
     const report = await Report.findById(id);
@@ -105,6 +116,17 @@ export const claimReport = async (req, res, next) => {
 // 4. Resolve a Report (NGO Uploads Proof -> Reporter gets Karma)
 export const resolveReport = async (req, res, next) => {
   try {
+    if (
+      req.user.role === "ngo" &&
+      req.user.verification_status !== "verified"
+    ) {
+      return res.status(403).json({
+        status: "fail",
+        message:
+          "Your account is pending verification. You cannot perform this action yet.",
+      });
+    }
+
     const { id } = req.params;
 
     // 1. Check if Report exists and is claimed by this NGO

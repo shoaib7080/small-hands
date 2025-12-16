@@ -1,16 +1,156 @@
 import * as authService from "../services/authService.js";
+import NGO from "../models/ngoModel.js";
+import Reporter from "../models/reporterModel.js";
+import Report from "../models/reportModel.js";
 
 export const addTrustedNGO = async (req, res, next) => {
+  //Route to be created
   try {
     // req.user.id comes from the auth middleware (we will add this next)
     const result = await authService.createTrustedNGO(req.body, req.user.id);
+    res.status(201).json({
+      status: "success",
+      message: "Trusted NGO created!",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 1. Dashboard Stats (The "Big Picture")
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    const totalNGOs = await NGO.countDocuments();
+    const pendingNGOs = await NGO.countDocuments({
+      verification_status: "pending",
+    });
+    const verifiedNGOs = await NGO.countDocuments({
+      verification_status: "verified",
+    });
+
+    const totalReporters = await Reporter.countDocuments();
+
+    const totalReports = await Report.countDocuments();
+    const resolvedReports = await Report.countDocuments({ status: "Resolved" });
+    const openReports = await Report.countDocuments({ status: "Open" });
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        ngos: {
+          total: totalNGOs,
+          pending: pendingNGOs,
+          verified: verifiedNGOs,
+        },
+        reporters: { total: totalReporters },
+        reports: {
+          total: totalReports,
+          resolved: resolvedReports,
+          open: openReports,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 2. Get NGOs (Filter by Status)
+export const getNGOs = async (req, res, next) => {
+  try {
+    const { status } = req.query; // ?status=pending or ?status=verified
+    const query = status ? { verification_status: status } : {};
+
+    const ngos = await NGO.find(query).select("-password");
     res
-      .status(201)
-      .json({
-        status: "success",
-        message: "Trusted NGO created!",
-        data: result,
-      });
+      .status(200)
+      .json({ status: "success", results: ngos.length, data: ngos });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 3. Verify an NGO
+export const verifyNGO = async (req, res, next) => {
+  try {
+    const ngo = await NGO.findByIdAndUpdate(
+      req.params.id,
+      {
+        verification_status: "verified",
+      },
+      { new: true }
+    );
+
+    if (!ngo) return res.status(404).json({ message: "NGO not found" });
+
+    res
+      .status(200)
+      .json({ status: "success", message: "NGO Approved", data: ngo });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 4. Reject/Delete NGO
+export const deleteNGO = async (req, res, next) => {
+  try {
+    await NGO.findByIdAndDelete(req.params.id);
+    res.status(204).json({ status: "success", data: null });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 5. Get All Reporters
+export const getReporters = async (req, res, next) => {
+  try {
+    const reporters = await Reporter.find().select("-password");
+    res
+      .status(200)
+      .json({ status: "success", results: reporters.length, data: reporters });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 6. Ban/Delete Reporter
+export const deleteReporter = async (req, res, next) => {
+  try {
+    await Reporter.findByIdAndDelete(req.params.id);
+    res.status(204).json({ status: "success", data: null });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 7. Get All Reports (For Moderation)
+export const getAllReports = async (req, res, next) => {
+  try {
+    const { reporterId, ngoId } = req.query;
+
+    let filter = {};
+    if (reporterId) filter.reporter_id = reporterId;
+    if (ngoId) filter.claimed_by = ngoId;
+
+    const reports = await Report.find(filter)
+      .populate("reporter_id", "name phone")
+      .populate("claimed_by", "name")
+      .sort({ createdAt: -1 }); // Newest first
+
+    res
+      .status(200)
+      .json({ status: "success", results: reports.length, data: reports });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// 8. Delete Offensive Report
+export const deleteReport = async (req, res, next) => {
+  try {
+    await Report.findByIdAndDelete(req.params.id);
+    res.status(204).json({ status: "success", data: null });
   } catch (err) {
     next(err);
   }

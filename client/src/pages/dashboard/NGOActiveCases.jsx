@@ -216,6 +216,42 @@ const NGOActiveCases = () => {
 
   const displayedReports = reports;
 
+  if (user.verification_status !== "verified") {
+    return (
+      <div className="h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white p-10 rounded-2xl shadow-xl max-w-lg border-t-8 border-yellow-400">
+          <div className="text-6xl mb-4">⏳</div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Verification Pending
+          </h1>
+          <p className="text-gray-600 text-lg mb-6">
+            Thank you for joining <strong>Small Hands</strong>. To ensure the
+            safety of our network, an Admin must verify your license documents
+            before you can access the Live Console.
+          </p>
+
+          <div className="bg-blue-50 p-4 rounded-lg text-left mb-6">
+            <p className="font-bold text-blue-800 text-sm uppercase mb-1">
+              What happens next?
+            </p>
+            <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+              <li>Admins review your license number.</li>
+              <li>This process usually takes 24-48 hours.</li>
+              <li>You will gain access automatically upon approval.</li>
+            </ul>
+          </div>
+
+          <Link
+            to="/dashboard/ngo"
+            className="text-blue-600 font-bold hover:underline"
+          >
+            &larr; Return to Dashboard Stats
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!ngoLocation)
     return (
       <div className="flex items-center justify-center h-screen bg-gray-100 flex-col">
