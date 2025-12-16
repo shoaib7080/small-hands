@@ -4,14 +4,24 @@ import helmet from "helmet";
 import morgan from "morgan"; // logging middleware
 import authRoutes from "./routes/authRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
+import leaderboardRoutes from "./routes/leaderboardRoutes.js";
+import swaggerUi from "swagger-ui-express";
+import { specs } from "./config/swagger.js";
+import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
 
 const app = express();
 
 // Middleware
 app.use(helmet());
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL || "http://localhost:5173",
+//     credentials: true,
+//   })
+// );
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: "*", // Allow all origins temporarily
     credentials: true,
   })
 );
@@ -23,11 +33,12 @@ app.get("/", (req, res) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ status: "error", message: "Something went wrong!" });
-});
+// Swagger Documentation Route
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;

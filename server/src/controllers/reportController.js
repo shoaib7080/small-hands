@@ -15,7 +15,14 @@ export const createReport = async (req, res, next) => {
       location: { type: "Point", coordinates: [longitude, latitude] },
     });
 
-    // TODO: Emit Socket.io event here later
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("new_report", {
+        message: "New Help Request Nearby!",
+        report: report,
+      });
+      console.log("📡 Event Emitted: new_report"); // Log for debugging
+    }
 
     res.status(201).json({ status: "success", data: report });
   } catch (err) {
