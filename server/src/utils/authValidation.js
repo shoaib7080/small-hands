@@ -27,6 +27,6 @@ export const loginSchema = z.object({
   body: z.object({
     identifier: z.string(), // Can be email OR phone
     password: z.string(),
-    role: z.enum(["reporter", "ngo", "admin"]), // User must tell us who they are
+    // role: z.enum(["reporter", "ngo", "admin"]), // User must tell us who they are
   }),
 });

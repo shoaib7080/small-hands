@@ -10,6 +10,8 @@ const reporterSchema = new mongoose.Schema(
     // Gamification
     karma_points: { type: Number, default: 0 },
     badges: [{ type: String }],
+    reports_posted: { type: Number, default: 0 },
+    reports_resolved: { type: Number, default: 0 },
 
     default_location: {
       type: { type: String, default: "Point" },

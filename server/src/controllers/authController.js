@@ -21,8 +21,8 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const { identifier, password, role } = req.body;
-    const result = await authService.loginUser(identifier, password, role);
+    const { identifier, password } = req.body;
+    const result = await authService.loginUser(identifier, password);
     res.status(200).json({ status: "success", data: result });
   } catch (err) {
     next(err);

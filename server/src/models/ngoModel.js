@@ -28,6 +28,8 @@ const ngoSchema = new mongoose.Schema(
     // Public Profile
     website: String,
     donation_link: String,
+    cases_claimed: { type: Number, default: 0 },
+    cases_resolved: { type: Number, default: 0 },
     impact_score: { type: Number, default: 0 }, // For Leaderboard
   },
   { timestamps: true }

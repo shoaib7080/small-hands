@@ -17,6 +17,8 @@ const reportSchema = new mongoose.Schema(
     // Images will be URLs from Cloudinary
     images: [{ type: String }],
 
+    resolution_images: [{ type: String }],
+
     // Status Flow
     status: {
       type: String,

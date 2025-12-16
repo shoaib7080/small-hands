@@ -103,21 +103,37 @@ export const createTrustedNGO = async (data, adminId) => {
   return ngo;
 };
 
-export const loginUser = async (identifier, password, role) => {
-  let user;
+export const loginUser = async (identifier, password) => {
+  // 1. Try finding a Reporter (by Phone)
+  let user = await Reporter.findOne({ phone: identifier });
+  let role = "reporter";
 
-  if (role === "reporter") user = await Reporter.findOne({ phone: identifier });
-  else if (role === "ngo") user = await NGO.findOne({ email: identifier });
-  else if (role === "admin")
+  // 2. If not found, try finding an NGO (by Email)
+  if (!user) {
+    user = await NGO.findOne({ email: identifier });
+    role = "ngo";
+  }
+
+  // 3. If still not found, try finding an Admin (by Username)
+  if (!user) {
     user = await Admin.findOne({ username: identifier });
+    role = "admin";
+  }
 
+  // 4. If absolutely no one found
   if (!user) throw new Error("User not found");
 
+  // 5. Verify Password
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error("Invalid credentials");
 
+  // 6. Return Data (Frontend needs the role to redirect!)
   return {
-    user: { id: user._id, name: user.name, role },
+    user: {
+      id: user._id,
+      name: user.name || user.username,
+      role: role, // Backend determines role now
+    },
     token: generateToken(user._id, role),
   };
 };

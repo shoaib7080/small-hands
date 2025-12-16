@@ -6,6 +6,8 @@ import {
   ngoRegisterSchema,
   loginSchema,
 } from "../utils/authValidation.js";
+import { getMe } from "../controllers/userController.js";
+import { protect } from "../middlewares/authMiddleware.js";
 
 /**
  * @swagger
@@ -43,6 +45,7 @@ router.post(
   validate(ngoRegisterSchema),
   authController.register
 );
+router.get("/me", protect, getMe);
 
 router.post("/login", validate(loginSchema), authController.login);
 
