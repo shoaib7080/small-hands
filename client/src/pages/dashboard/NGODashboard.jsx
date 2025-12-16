@@ -21,6 +21,7 @@ const StatCard = ({ label, value, color, icon }) => (
 
 const NGODashboard = () => {
   const [user, setUser] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {

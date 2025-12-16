@@ -56,6 +56,8 @@ const NGOActiveCases = () => {
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState("list");
   const [filter, setFilter] = useState("all");
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [checkingVerification, setCheckingVerification] = useState(true);
 
   // Modal State
   const [selectedReport, setSelectedReport] = useState(null);
@@ -70,6 +72,20 @@ const NGOActiveCases = () => {
 
   const socketRef = useRef();
   const user = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    const checkVerification = async () => {
+      try {
+        const { data } = await api.get("/auth/me");
+        setVerificationStatus(data.data.verification_status);
+      } catch (err) {
+        console.error("Failed to check verification");
+      } finally {
+        setCheckingVerification(false);
+      }
+    };
+    checkVerification();
+  }, []);
 
   // 1. Initialize Data & Socket
   useEffect(() => {
@@ -216,7 +232,16 @@ const NGOActiveCases = () => {
 
   const displayedReports = reports;
 
-  if (user.verification_status !== "verified") {
+  if (checkingVerification) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100 flex-col">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mb-4"></div>
+        <p className="text-gray-600 font-medium">Loading...</p>
+      </div>
+    );
+  }
+
+  if (verificationStatus !== "verified") {
     return (
       <div className="h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-white p-10 rounded-2xl shadow-xl max-w-lg border-t-8 border-yellow-400">
