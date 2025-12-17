@@ -1,4 +1,7 @@
 import jwt from "jsonwebtoken";
+import NGO from "../models/ngoModel.js";
+import Reporter from "../models/reporterModel.js";
+import Admin from "../models/adminModel.js";
 
 export const protect = async (req, res, next) => {
   let token;
@@ -8,14 +11,32 @@ export const protect = async (req, res, next) => {
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Get token from header (Bearer <token>)
       token = req.headers.authorization.split(" ")[1];
-
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret123");
 
-      // Add user info to request object
-      req.user = { id: decoded.id, role: decoded.role };
+      // Fetch full user data based on role
+      let user;
+      if (decoded.role === "ngo") {
+        user = await NGO.findById(decoded.id);
+      } else if (decoded.role === "reporter") {
+        user = await Reporter.findById(decoded.id);
+      } else if (decoded.role === "admin") {
+        user = await Admin.findById(decoded.id);
+      }
+
+      if (!user) {
+        return res
+          .status(401)
+          .json({ status: "error", message: "User not found" });
+      }
+
+      // Add full user info to request object
+      req.user = {
+        id: user._id,
+        role: decoded.role,
+        verification_status: user.verification_status || "verified", // Default for reporters/admins
+        ...user.toObject(),
+      };
 
       next();
     } catch (error) {
@@ -36,12 +57,10 @@ export const protect = async (req, res, next) => {
 export const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res
-        .status(403)
-        .json({
-          status: "error",
-          message: "You do not have permission to perform this action",
-        });
+      return res.status(403).json({
+        status: "error",
+        message: "You do not have permission to perform this action",
+      });
     }
     next();
   };

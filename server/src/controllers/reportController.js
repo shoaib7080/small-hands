@@ -133,7 +133,7 @@ export const resolveReport = async (req, res, next) => {
     const report = await Report.findById(id);
     if (!report) return res.status(404).json({ message: "Report not found" });
 
-    if (report.claimed_by.toString() !== req.user.id) {
+    if (!report.claimed_by.equals(req.user.id)) {
       return res
         .status(403)
         .json({ message: "You can only resolve cases you claimed." });

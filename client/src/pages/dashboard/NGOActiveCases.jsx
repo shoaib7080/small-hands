@@ -60,14 +60,13 @@ const NGOActiveCases = () => {
   const [checkingVerification, setCheckingVerification] = useState(true);
 
   // Modal State
-  const [selectedReport, setSelectedReport] = useState(null);
   const [proofFile, setProofFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [resolveModalId, setResolveModalId] = useState(null); // For "Mark Resolved"
   const [viewingReport, setViewingReport] = useState(null);
 
   // LOGIC STATES
-  const [highlightedId, setHighlightedId] = useState(null); // Which pin is big?
+  const [highlightedId, setHighlightedId] = useState(null); // Bigger icon on map
   const [mapCenter, setMapCenter] = useState(null);
 
   const socketRef = useRef();
@@ -203,14 +202,14 @@ const NGOActiveCases = () => {
     formData.append("proof", proofFile);
 
     try {
-      await api.patch(`/reports/${selectedReport}/resolve`, formData, {
+      await api.patch(`/reports/${resolveModalId}/resolve`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Case Resolved! +50 Impact Points added.");
 
       // Remove the resolved report from the list (it's closed now)
-      setReports((prev) => prev.filter((r) => r._id !== selectedReport));
-      setSelectedReport(null);
+      setReports((prev) => prev.filter((r) => r._id !== resolveModalId));
+      setResolveModalId(null);
       setProofFile(null);
     } catch (err) {
       toast.error("Failed to resolve case.");
