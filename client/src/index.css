@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary-500: #0d9488;
+  --color-primary-600: #0f766e;
+  --color-primary-700: #115e59;
+  --color-accent-500: #14b8a6;
+  --color-accent-600: #0d9488;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #9ea8bdff;
+  --color-text-muted: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-success-500: #10b981;
+  --color-warning-500: #f59e0b;
+  --color-error-500: #ef4444;
+  --color-sidebar-bg: #374151ff;
+  --color-sidebar-border: #4b5563;
+  --color-sidebar-text: #d1d5db;
+  --color-sidebar-text-inactive: #9ca3af;
+}
 .leaflet-container {
   height: 100%;
   width: 100%;

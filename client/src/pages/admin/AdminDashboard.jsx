@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { HiArrowRight } from "react-icons/hi";
 import api from "../../services/api";
 
-const StatCard = ({ title, value, subtext, color }) => (
-  <div className={`bg-white p-6 rounded-xl shadow-sm border-l-4 ${color}`}>
-    <h3 className="text-gray-500 text-sm font-bold uppercase tracking-wider">
-      {title}
-    </h3>
-    <div className="flex items-end gap-2 mt-2">
-      <span className="text-4xl font-extrabold text-gray-800">{value}</span>
-      {subtext && <span className="text-sm text-gray-500 mb-1">{subtext}</span>}
+const StatCard = ({ title, value, subtext, color, icon }) => (
+  <div className="bg-surface p-4 md:p-6 rounded-xl shadow-sm border border-border">
+    <div className="flex items-center justify-between mb-3">
+      <h3 className="text-text-secondary text-sm font-medium uppercase tracking-wide">
+        {title}
+      </h3>
+      <span className={`w-3 h-3 rounded-full ${color}`}></span>
+    </div>
+    <div className="space-y-1">
+      <span className="text-3xl md:text-4xl font-bold text-text-primary block">
+        {value}
+      </span>
+      {subtext && (
+        <span className="text-xs text-text-muted block">{subtext}</span>
+      )}
     </div>
   </div>
 );
@@ -39,24 +47,24 @@ const AdminDashboard = () => {
   if (!stats) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* 1. Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           title="Total NGOs"
           value={stats.ngos.total}
           subtext={`${stats.ngos.pending} Pending`}
-          color="border-blue-500"
+          color="bg-primary-500"
         />
         <StatCard
           title="Citizen Reporters"
           value={stats.reporters.total}
-          color="border-purple-500"
+          color="bg-accent-500"
         />
         <StatCard
           title="Total Incidents"
           value={stats.reports.total}
-          color="border-red-500"
+          color="bg-warning-500"
         />
         <StatCard
           title="Resolved Cases"
@@ -65,32 +73,38 @@ const AdminDashboard = () => {
             (stats.reports.resolved / (stats.reports.total || 1)) *
             100
           ).toFixed(0)}% Success Rate`}
-          color="border-green-500"
+          color="bg-success-500"
         />
       </div>
 
       {/* 2. Visual Alert for Pending Approvals */}
       {stats.ngos.pending > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-xl flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <span className="text-3xl">⚠️</span>
-            <div>
-              <h3 className="text-lg font-bold text-yellow-800">
-                Pending Verification Requests
-              </h3>
-              <p className="text-yellow-700">
-                There are {stats.ngos.pending} organizations waiting for your
-                approval.
-              </p>
+        <a
+          href="/admin/ngos"
+          className="block bg-yellow-50 border border-yellow-200 p-4 rounded-xl hover:bg-yellow-100 transition-colors cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl"></span>
+              <div>
+                <h3 className="text-base font-bold text-yellow-800">
+                  Pending Verification Requests
+                </h3>
+                <p className="text-sm text-yellow-700">
+                  Organizations waiting for approval
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="bg-yellow-500 text-white text-sm font-bold px-2 py-1 rounded-full min-w-[24px] text-center">
+                {stats.ngos.pending}
+              </span>
+              <div className="flex items-center gap-1 text-yellow-600 text-sm font-medium">
+                Review <HiArrowRight className="w-4 h-4" />
+              </div>
             </div>
           </div>
-          <a
-            href="/admin/ngos"
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm"
-          >
-            Review Now
-          </a>
-        </div>
+        </a>
       )}
     </div>
   );

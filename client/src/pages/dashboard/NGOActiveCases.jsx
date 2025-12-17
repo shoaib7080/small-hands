@@ -285,9 +285,9 @@ const NGOActiveCases = () => {
     );
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-100 relative">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-gray-100 overflow-hidden">
       {/* HEADER (Mobile) */}
-      <div className="md:hidden bg-blue-800 text-white p-4 flex flex-col gap-2 shadow-md z-20">
+      <div className="md:hidden bg-blue-800 text-white p-4 flex flex-col gap-2 shadow-md z-20 sticky top-0">
         <div className="flex justify-between items-center">
           <Link to="/dashboard/ngo" className="font-bold">
             ← Back
@@ -321,11 +321,11 @@ const NGOActiveCases = () => {
 
       {/* LIST VIEW */}
       <div
-        className={`w-full md:w-1/3 bg-white border-r flex-col shadow-lg z-10 h-full ${
+        className={`w-full md:w-1/3 bg-white border-r flex flex-col shadow-lg z-10 h-full ${
           mobileView === "list" ? "flex" : "hidden md:flex"
         }`}
       >
-        <div className="hidden md:block p-4 bg-blue-800 text-white">
+        <div className="p-4 bg-blue-800 text-white sticky top-0 z-10">
           <Link
             to="/dashboard/ngo"
             className="text-xs opacity-70 hover:underline hover:text-white mb-2 block"
