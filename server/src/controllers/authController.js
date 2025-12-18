@@ -180,12 +180,16 @@ const getModel = (role) => (role === "ngo" ? NGO : Reporter);
 
 export const sendVerificationEmail = async (req, res, next) => {
   try {
+    const { email } = req.body; // Get email from request body
     const user = await getModel(req.user.role).findById(req.user.id);
 
-    console.log("🔍 DEBUG - User ID:", req.user.id);
-    console.log("🔍 DEBUG - User Role:", req.user.role);
-    console.log("🔍 DEBUG - Fetched User:", user);
-    console.log("🔍 DEBUG - User Email:", user?.email);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
 
     // Generate random 6-digit number
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -198,10 +202,10 @@ export const sendVerificationEmail = async (req, res, next) => {
     user.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
 
-    // Send Email
+    // Send Email to the NEW email address from request
     const message = `Your verification code is: ${otp}\nValid for 10 minutes.`;
     await sendEmail({
-      email: user.email,
+      email: email, // Use email from request body, not user.email
       subject: "Small Hands: Verify your Email",
       message,
     });
