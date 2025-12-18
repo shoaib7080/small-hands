@@ -1,6 +1,17 @@
 import axios from "axios";
 
 const sendEmail = async (options) => {
+  if (!options.email) {
+    throw new Error("Recipient email is required");
+  }
+  if (!options.subject) {
+    throw new Error("Email subject is required");
+  }
+  if (!options.message) {
+    throw new Error("Email message is required");
+  }
+
+  // Debug: Check if API key is loaded
   console.log(
     "BREVO_API_KEY:",
     process.env.BREVO_API_KEY ? "✅ Loaded" : "❌ Missing"
@@ -9,6 +20,7 @@ const sendEmail = async (options) => {
     "SENDER_EMAIL:",
     process.env.SENDER_EMAIL ? "✅ Loaded" : "❌ Missing"
   );
+  console.log("Recipient email:", options.email);
 
   if (!process.env.BREVO_API_KEY) {
     throw new Error("BREVO_API_KEY environment variable is not set");
