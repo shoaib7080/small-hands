@@ -177,7 +177,10 @@ export const updateUserProfile = async (userId, updateData) => {
 
   // Update fields
   if (name) user.name = name;
-  if (email) user.email = email;
+  if (email && email !== user.email) {
+    user.email = email;
+    user.isEmailVerified = false; // Reset verification status when email changes
+  }
 
   await user.save();
 
