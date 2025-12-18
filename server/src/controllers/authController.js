@@ -182,6 +182,11 @@ export const sendVerificationEmail = async (req, res, next) => {
   try {
     const user = await getModel(req.user.role).findById(req.user.id);
 
+    console.log("🔍 DEBUG - User ID:", req.user.id);
+    console.log("🔍 DEBUG - User Role:", req.user.role);
+    console.log("🔍 DEBUG - Fetched User:", user);
+    console.log("🔍 DEBUG - User Email:", user?.email);
+
     // Generate random 6-digit number
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
