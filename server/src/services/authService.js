@@ -102,23 +102,44 @@ export const createTrustedNGO = async (data, adminId) => {
 };
 
 export const loginUser = async (identifier, password) => {
-  // 1. Try finding a Reporter (by Phone)
-  let user = await Reporter.findOne({ phone: identifier });
-  let role = "reporter";
+  let user = null;
+  let role = null;
 
-  // 2. If not found, try finding an NGO (by Email)
-  if (!user) {
-    user = await NGO.findOne({ email: identifier });
-    role = "ngo";
+  // Check if identifier is email or phone
+  const isEmail = identifier.includes("@");
+
+  if (isEmail) {
+    // Try finding by email in all collections
+    user = await Reporter.findOne({ email: identifier });
+    if (user) role = "reporter";
+
+    if (!user) {
+      user = await NGO.findOne({ email: identifier });
+      if (user) role = "ngo";
+    }
+
+    if (!user) {
+      user = await Admin.findOne({ email: identifier });
+      if (user) role = "admin";
+    }
+  } else {
+    // Try finding by phone in all collections
+    user = await Reporter.findOne({ phone: identifier });
+    if (user) role = "reporter";
+
+    if (!user) {
+      user = await NGO.findOne({ phone: identifier });
+      if (user) role = "ngo";
+    }
+
+    // Admin login by username (fallback)
+    if (!user) {
+      user = await Admin.findOne({ username: identifier });
+      if (user) role = "admin";
+    }
   }
 
-  // 3. If still not found, try finding an Admin (by Username)
-  if (!user) {
-    user = await Admin.findOne({ username: identifier });
-    role = "admin";
-  }
-
-  // 4. If absolutely no one found
+  // If absolutely no one found
   if (!user) throw new Error("User not found");
 
   // 5. Verify Password
@@ -130,8 +151,37 @@ export const loginUser = async (identifier, password) => {
     user: {
       id: user._id,
       name: user.name || user.username,
-      role: role, // Backend determines role now
+      role: role,
+      phone: user.phone,
+      email: user.email,
     },
     token: generateToken(user._id, role),
   };
+};
+
+export const updateUserProfile = async (userId, updateData) => {
+  const { name, email } = updateData;
+
+  // Find user in all collections
+  let user = await Reporter.findById(userId);
+  if (!user) {
+    user = await NGO.findById(userId);
+  }
+  if (!user) {
+    user = await Admin.findById(userId);
+  }
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Update fields
+  if (name) user.name = name;
+  if (email) user.email = email;
+
+  await user.save();
+
+  // Return user without password
+  const { password, ...userWithoutPassword } = user.toObject();
+  return userWithoutPassword;
 };

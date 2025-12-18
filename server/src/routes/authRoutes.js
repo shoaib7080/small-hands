@@ -5,6 +5,7 @@ import {
   reporterRegisterSchema,
   ngoRegisterSchema,
   loginSchema,
+  updateProfileSchema,
 } from "../utils/authValidation.js";
 import { getMe } from "../controllers/userController.js";
 import { protect } from "../middlewares/authMiddleware.js";
@@ -48,5 +49,23 @@ router.post(
 router.get("/me", protect, getMe);
 
 router.post("/login", validate(loginSchema), authController.login);
+
+router.put(
+  "/profile",
+  protect,
+  validate(updateProfileSchema),
+  authController.updateProfile
+);
+
+router.post("/forgot-password", authController.forgotPassword);
+router.post("/verify-reset-otp", authController.verifyResetOTP);
+router.post("/reset-password", authController.resetPassword);
+
+router.post(
+  "/send-verification",
+  protect,
+  authController.sendVerificationEmail
+);
+router.post("/verify-email", protect, authController.verifyEmail);
 
 export default router;

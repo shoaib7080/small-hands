@@ -8,6 +8,7 @@ import {
   // HiTrophy,
   HiViewGrid,
   HiArrowLeft,
+  HiUser,
 } from "react-icons/hi";
 import LoadingOverlay from "./LoadingOverlay";
 
@@ -136,6 +137,14 @@ const Navbar = () => {
                           {user.email || "No email"}
                         </p>
                       </div>
+                      <Link
+                        to="/profile"
+                        className="w-full text-left px-4 py-2 text-sm text-text-primary hover:bg-background transition-colors flex items-center gap-2"
+                        onClick={() => setShowProfileDropdown(false)}
+                      >
+                        <HiUser className="w-4 h-4" />
+                        Profile
+                      </Link>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-error-500 hover:bg-background transition-colors flex items-center gap-2"
@@ -171,12 +180,12 @@ const Navbar = () => {
                 <div className="w-10 h-10 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold">
                   {user.name?.charAt(0) || "U"}
                 </div>
-                <div>
+                <Link to="/profile" onClick={() => setIsOpen(false)}>
                   <p className="font-medium text-text-primary">{user.name}</p>
                   <p className="text-sm text-text-muted capitalize">
                     {user.role}
                   </p>
-                </div>
+                </Link>
               </div>
             )}
 

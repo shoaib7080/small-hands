@@ -325,7 +325,7 @@ const NGOActiveCases = () => {
           mobileView === "list" ? "flex" : "hidden md:flex"
         }`}
       >
-        <div className="p-4 bg-blue-800 text-white sticky top-0 z-10">
+        <div className="hidden md:block p-4 bg-blue-800 text-white sticky top-0 z-10">
           <Link
             to="/dashboard/ngo"
             className="text-xs opacity-70 hover:underline hover:text-white mb-2 block"

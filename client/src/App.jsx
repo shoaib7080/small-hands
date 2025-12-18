@@ -17,6 +17,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminNGOs from "./pages/admin/AdminNGOs";
 import AdminReporters from "./pages/admin/AdminReporters";
 import AdminReports from "./pages/admin/AdminReports";
+import OTPVerification from "./pages/auth/OTPVerification";
+import UserProfile from "./pages/profile/UserProfile";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 function App() {
   return (
@@ -29,9 +32,21 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register/reporter" element={<ReporterSignup />} />
         <Route path="/register/ngo" element={<NGOSignup />} />
+        <Route path="/auth/verify-otp" element={<OTPVerification />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
 
         {/* PROTECTED ROUTES */}
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={["reporter", "ngo", "admin", "super_admin"]}
+            />
+          }
+        >
+          <Route path="/profile" element={<UserProfile />} />
+        </Route>
+
         <Route element={<ProtectedRoute allowedRoles={["reporter"]} />}>
           <Route path="/dashboard/reporter" element={<ReporterDashboard />} />
           <Route path="/dashboard/reporter/create" element={<ReporterMap />} />
