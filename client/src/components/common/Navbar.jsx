@@ -13,7 +13,15 @@ import {
 import LoadingOverlay from "./LoadingOverlay";
 
 const Navbar = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = (() => {
+    try {
+      const userData = localStorage.getItem("user");
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return null;
+    }
+  })();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
