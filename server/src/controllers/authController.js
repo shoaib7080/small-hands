@@ -4,23 +4,97 @@ import bcrypt from "bcryptjs";
 import sendEmail from "../utils/email.js";
 import Reporter from "../models/reporterModel.js";
 import NGO from "../models/ngoModel.js";
+import { OAuth2Client } from "google-auth-library";
+import { createSendToken } from "../utils/jwtToken.js";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { token } = req.body; // Token from Frontend
+
+    // 1. Verify Token with Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    // 2. Extract Info
+    const { name, email, picture, sub, email_verified } = ticket.getPayload();
+
+    // 3. Check if user already exists
+    let user = await Reporter.findOne({ email });
+
+    if (user) {
+      // CASE A: User exists
+      // Optional: Update their avatar if they changed it on Google
+      if (!user.googleId) {
+        // Link Google to existing email account
+        user.googleId = sub;
+        user.authProvider = "google";
+        user.isEmailVerified = true; // Trust Google
+        await user.save({ validateBeforeSave: false });
+      }
+    } else {
+      // CASE B: New User (Register them)
+      user = await Reporter.create({
+        name: name,
+        email: email,
+        avatar: picture, // Save Google Photo
+        googleId: sub,
+        authProvider: "google",
+        isEmailVerified: email_verified, // Usually true
+        password: undefined, // Explicitly no password
+      });
+    }
+
+    // 4. Log them in (Send JWT)
+    createSendToken(user, 200, res);
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const register = async (req, res, next) => {
   try {
-    const { role } = req.body;
-    let result;
+    const { role, email } = req.body;
 
     if (role === "reporter") {
-      result = await authService.registerReporter(req.body);
+      // Create user but mark email as unverified
+      const user = await authService.registerReporter({
+        ...req.body,
+        isEmailVerified: false,
+      });
+
+      // Send verification email immediately
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
+
+      user.emailVerificationToken = hashedOTP;
+      user.emailVerificationExpires = Date.now() + 10 * 60 * 1000;
+      await user.save({ validateBeforeSave: false });
+
+      const message = `Your verification code is: ${otp}\nValid for 10 minutes.`;
+      await sendEmail({
+        email: email,
+        subject: "Small Hands: Verify your Email",
+        message,
+      });
+
+      res.status(201).json({
+        status: "success",
+        message:
+          "Registration successful! Please check your email for verification code.",
+        data: { email: user.email },
+      });
     } else if (role === "ngo") {
-      result = await authService.registerNGO(req.body);
+      const result = await authService.registerNGO(req.body);
+      res.status(201).json({ status: "success", data: result });
     } else {
       throw new Error("Invalid role");
     }
-
-    res.status(201).json({ status: "success", data: result });
   } catch (err) {
-    next(err); // Passes to global error handler
+    next(err);
   }
 };
 

@@ -67,5 +67,6 @@ router.post(
   authController.sendVerificationEmail
 );
 router.post("/verify-email", protect, authController.verifyEmail);
+router.post("/google", authController.googleAuth);
 
 export default router;

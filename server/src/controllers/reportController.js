@@ -197,3 +197,22 @@ export const getMyCases = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getMyReports = async (req, res, next) => {
+  try {
+    const reports = await Report.find({
+      reporter_id: req.user.id,
+    })
+      .populate("claimed_by", "name")
+      .sort({ createdAt: -1 })
+      .limit(10); // Show last 10 reports
+
+    res.status(200).json({
+      status: "success",
+      count: reports.length,
+      data: reports,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

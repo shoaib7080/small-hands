@@ -13,7 +13,12 @@ import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allows images from Google
+  })
+);
 app.use(
   cors({
     origin: ["http://localhost:5173", process.env.CLIENT_URL],

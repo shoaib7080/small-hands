@@ -4,9 +4,20 @@ import crypto from "crypto";
 const reporterSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    phone: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    phone: { type: String, unique: true },
+    password: {
+      type: String,
+      required: function () {
+        // Only required if NOT using Google Auth
+        return !this.googleId;
+      },
+    },
+
+    googleId: { type: String },
+    authProvider: { type: String, enum: ["local", "google"], default: "local" },
+
     email: { type: String, unique: true, sparse: true },
+    avatar: { type: String, default: "default.jpg" },
     isEmailVerified: { type: Boolean, default: false },
     role: { type: String, default: "reporter", immutable: true },
 

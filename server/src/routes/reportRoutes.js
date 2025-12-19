@@ -46,4 +46,6 @@ router.patch(
   reportController.resolveReport
 );
 
+router.get("/my-reports", protect, reportController.getMyReports);
+
 export default router;
