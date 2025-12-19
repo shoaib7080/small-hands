@@ -218,7 +218,7 @@ export const sendVerificationEmail = async (req, res, next) => {
 
 export const verifyEmail = async (req, res, next) => {
   try {
-    const { code } = req.body;
+    const { code, email } = req.body;
 
     if (!code) {
       return res.status(400).json({ message: "Verification code is required" });
@@ -238,8 +238,9 @@ export const verifyEmail = async (req, res, next) => {
         .json({ message: "Token is invalid or has expired" });
     }
 
-    // Success! Mark verified and clear the token
+    // Success! Mark verified, update email, and clear the token
     user.isEmailVerified = true;
+    if (email) user.email = email;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
     await user.save({ validateBeforeSave: false });

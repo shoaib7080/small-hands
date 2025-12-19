@@ -83,6 +83,7 @@ const UserProfile = () => {
     try {
       const response = await api.post("/auth/verify-email", {
         code: verificationCode,
+        email: formData.email,
       });
       const updatedUser = response.data.data;
 
@@ -94,6 +95,8 @@ const UserProfile = () => {
         ...prev,
         email: updatedUser.email,
       }));
+
+      window.location.reload();
 
       toast.success("Email verified successfully!");
       setShowVerificationModal(false);
