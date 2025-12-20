@@ -167,5 +167,9 @@ router.post(
 );
 router.post("/verify-email", protect, authController.verifyEmail);
 router.post("/google", authController.googleAuth);
+router.post(
+  "/verify-email-registration",
+  authController.verifyEmailRegistration
+);
 
 export default router;
