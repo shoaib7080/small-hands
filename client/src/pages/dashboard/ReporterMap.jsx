@@ -48,6 +48,7 @@ const ReporterHome = () => {
     const formData = new FormData();
     formData.append("type", data.type);
     formData.append("description", data.description);
+    formData.append("contact_info", data.contact_info || "");
     formData.append("severity", data.severity);
     formData.append("latitude", coords[0]);
     formData.append("longitude", coords[1]);
@@ -144,6 +145,18 @@ const ReporterHome = () => {
                   <option value="Clothes">Clothes</option>
                   <option value="Other">Other</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Contact Info
+                </label>
+                <input
+                  type="text"
+                  {...register("contact_info")}
+                  placeholder="Phone, WhatsApp, or any contact method"
+                  className="w-full border border-border bg-background text-text-primary p-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
               </div>
 
               <div>

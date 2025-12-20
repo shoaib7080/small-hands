@@ -165,7 +165,7 @@ const UserProfile = () => {
 
               {/* Phone Field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-text-secondary mb-2">
                   <HiPhone className="inline w-4 h-4 mr-2" />
                   Phone Number
                 </label>
@@ -174,12 +174,8 @@ const UserProfile = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
-                  disabled
+                  className="w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Phone number cannot be changed
-                </p>
               </div>
 
               {/* Email Field */}
