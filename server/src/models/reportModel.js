@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 const reportSchema = new mongoose.Schema(
   {
@@ -8,6 +8,7 @@ const reportSchema = new mongoose.Schema(
       required: true,
     },
     description: { type: String, required: true },
+    contact_info: Schema.Types.Mixed, // Flexible to hold phone/email/other
     severity: {
       type: String,
       enum: ["Low", "Medium", "High", "Critical"],

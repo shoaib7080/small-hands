@@ -9,10 +9,18 @@ import adminRoutes from "./routes/adminRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import { specs } from "./config/swagger.js";
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
+import compression from "compression";
 
 const app = express();
 
 // Middleware
+app.use(
+  compression({
+    level: 6,
+    threshold: 1024,
+  })
+);
+app.use(morgan("dev"));
 app.use(
   helmet({
     crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },

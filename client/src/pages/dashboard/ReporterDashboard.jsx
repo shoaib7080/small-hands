@@ -114,6 +114,15 @@ const ReportModal = ({ report, isOpen, onClose }) => {
               <p className="text-text-secondary">{report.description}</p>
             </div>
 
+            {report.contact_info && (
+              <div>
+                <h3 className="font-medium text-text-primary mb-2">
+                  Contact Info
+                </h3>
+                <p className="text-text-secondary">{report.contact_info}</p>
+              </div>
+            )}
+
             {report.claimed_by && (
               <div>
                 <h3 className="font-medium text-text-primary mb-2">
@@ -292,6 +301,7 @@ const ReporterDashboard = () => {
                     <p className="text-sm text-text-secondary line-clamp-2">
                       {report.description}
                     </p>
+
                     <p className="text-xs text-text-muted mt-1">
                       {new Date(report.createdAt).toLocaleDateString()}
                     </p>

@@ -6,7 +6,8 @@ import NGO from "../models/ngoModel.js";
 // 1. Create a Report
 export const createReport = async (req, res, next) => {
   try {
-    const { type, description, severity, latitude, longitude } = req.body;
+    const { type, description, contact_info, severity, latitude, longitude } =
+      req.body;
 
     let imageUrls = [];
     if (req.files && req.files.length > 0) {
@@ -16,6 +17,7 @@ export const createReport = async (req, res, next) => {
     const report = await Report.create({
       type,
       description,
+      contact_info,
       severity,
       images: imageUrls,
       reporter_id: req.user.id, // Comes from authMiddleware
@@ -23,7 +25,7 @@ export const createReport = async (req, res, next) => {
     });
 
     await Reporter.findByIdAndUpdate(req.user.id, {
-      $inc: { reports_posted: 1 },
+      $inc: { reports_posted: 1, karma_points: 5 },
     });
 
     const io = req.app.get("io");
@@ -32,7 +34,6 @@ export const createReport = async (req, res, next) => {
         message: "New Help Request Nearby!",
         report: report,
       });
-      console.log("📡 Event Emitted: new_report"); // Log for debugging
     }
 
     res.status(201).json({ status: "success", data: report });

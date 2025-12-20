@@ -6,6 +6,7 @@ import Reporter from "../models/reporterModel.js";
 import NGO from "../models/ngoModel.js";
 import { OAuth2Client } from "google-auth-library";
 import { createSendToken } from "../utils/jwtToken.js";
+import logger from "../utils/logger.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -24,6 +25,8 @@ export const googleAuth = async (req, res, next) => {
 
     // 3. Check if user already exists
     let user = await Reporter.findOne({ email });
+
+    logger.info(`User ${email} logged in successfully`);
 
     if (user) {
       // CASE A: User exists
@@ -51,6 +54,9 @@ export const googleAuth = async (req, res, next) => {
     // 4. Log them in (Send JWT)
     createSendToken(user, 200, res);
   } catch (err) {
+    logger.error("Login Failed", {
+      meta: { error: error.message, stack: error.stack },
+    });
     next(err);
   }
 };

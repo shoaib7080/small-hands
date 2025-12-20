@@ -1,4 +1,7 @@
 import winston from "winston";
+import "winston-mongodb";
+
+dotenv.config();
 
 const logger = winston.createLogger({
   level: "info",
@@ -14,13 +17,27 @@ const logger = winston.createLogger({
   ],
 });
 
-// If we're not in production then log to the `console` with simple format
-if (process.env.NODE_ENV !== "production") {
+// Logging to MongoDB in production
+if (process.env.NODE_ENV === "production") {
   logger.add(
-    new winston.transports.Console({
-      format: winston.format.simple(),
+    new winston.transports.MongoDB({
+      level: "error",
+      db: process.env.MONGO_URI,
+      options: { useUnifiedTopology: true },
+      collection: "server_logs",
+      capped: true,
+      cappedMax: 10000000, // Limit to 10MB
+      metaKey: "meta",
     })
   );
+}
+
+// Logging to local during development
+if (process.env.NODE_ENV !== "production") {
+  logger.add(
+    new winston.transports.File({ filename: "logs/error.log", level: "error" })
+  );
+  logger.add(new winston.transports.File({ filename: "logs/combined.log" }));
 }
 
 export default logger;
