@@ -4,7 +4,7 @@ import crypto from "crypto";
 const reporterSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    phone: { type: String, unique: true },
+    phone: { type: String, unique: true, sparse: true },
     password: {
       type: String,
       required: function () {
