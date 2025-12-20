@@ -116,12 +116,13 @@ export const login = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, phone } = req.body;
     const userId = req.user.id;
 
     const updatedUser = await authService.updateUserProfile(userId, {
       name,
       email,
+      phone,
     });
     res.status(200).json({ status: "success", data: updatedUser });
   } catch (err) {

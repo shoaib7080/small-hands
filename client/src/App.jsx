@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { Slide, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/auth/Login";
 import ReporterSignup from "./pages/auth/ReporterSignup";
@@ -24,7 +24,28 @@ import ResetPassword from "./pages/auth/ResetPassword";
 function App() {
   return (
     <BrowserRouter>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer
+        position="top-right"
+        autoClose={2500}
+        limit={3}
+        hideProgressBar
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Slide}
+        toastStyle={{
+          fontSize: "14px",
+          padding: "12px",
+          maxWidth: "90vw",
+          wordWrap: "break-word",
+          borderRadius: "12px",
+          marginTop: "12px",
+        }}
+      />
       <Navbar />
       <Routes>
         {/* PUBLIC ROUTES */}

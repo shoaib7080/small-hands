@@ -160,7 +160,7 @@ export const loginUser = async (identifier, password) => {
 };
 
 export const updateUserProfile = async (userId, updateData) => {
-  const { name, email } = updateData;
+  const { name, email, phone } = updateData;
 
   // Find user in all collections
   let user = await Reporter.findById(userId);
@@ -177,6 +177,7 @@ export const updateUserProfile = async (userId, updateData) => {
 
   // Update fields
   if (name) user.name = name;
+  if (phone) user.phone = phone;
   if (email && email !== user.email) {
     user.email = email;
     user.isEmailVerified = false; // Reset verification status when email changes

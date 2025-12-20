@@ -3,8 +3,10 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { io } from "socket.io-client";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { HiArrowLeft, HiLocationMarker, HiX, HiUpload } from "react-icons/hi";
 import L from "leaflet";
 import api from "../../services/api";
+import LoadingOverlay from "../../components/common/LoadingOverlay";
 import "leaflet/dist/leaflet.css";
 
 // --- ICONS CONFIGURATION ---
@@ -136,7 +138,7 @@ const NGOActiveCases = () => {
     return () => socketRef.current.disconnect();
   }, []);
 
-  // 2. Fetch Reports API
+  // Fetch Reports API
   const fetchNearbyReports = async (lat, lng) => {
     try {
       const { data } = await api.get(
@@ -232,33 +234,28 @@ const NGOActiveCases = () => {
   const displayedReports = reports;
 
   if (checkingVerification) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-100 flex-col">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mb-4"></div>
-        <p className="text-gray-600 font-medium">Loading...</p>
-      </div>
-    );
+    return <LoadingOverlay isVisible={true} text="Loading..." />;
   }
 
   if (verificationStatus !== "verified") {
     return (
-      <div className="h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-white p-10 rounded-2xl shadow-xl max-w-lg border-t-8 border-yellow-400">
+      <div className="h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-surface p-10 rounded-2xl shadow-xl max-w-lg border border-border">
           <div className="text-6xl mb-4">⏳</div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-text-primary mb-2">
             Verification Pending
           </h1>
-          <p className="text-gray-600 text-lg mb-6">
+          <p className="text-text-secondary text-lg mb-6">
             Thank you for joining <strong>Small Hands</strong>. To ensure the
             safety of our network, an Admin must verify your license documents
             before you can access the Live Console.
           </p>
 
-          <div className="bg-blue-50 p-4 rounded-lg text-left mb-6">
-            <p className="font-bold text-blue-800 text-sm uppercase mb-1">
+          <div className="bg-primary-50 p-4 rounded-lg text-left mb-6 border border-primary-200">
+            <p className="font-bold text-primary-700 text-sm uppercase mb-1">
               What happens next?
             </p>
-            <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+            <ul className="list-disc list-inside text-sm text-primary-600 space-y-1">
               <li>Admins review your license number.</li>
               <li>This process usually takes 24-48 hours.</li>
               <li>You will gain access automatically upon approval.</li>
@@ -267,9 +264,10 @@ const NGOActiveCases = () => {
 
           <Link
             to="/dashboard/ngo"
-            className="text-blue-600 font-bold hover:underline"
+            className="text-primary-600 font-bold hover:underline"
           >
-            &larr; Return to Dashboard Stats
+            <HiArrowLeft className="inline w-4 h-4 mr-1" />
+            Return to Dashboard Stats
           </Link>
         </div>
       </div>
@@ -278,30 +276,31 @@ const NGOActiveCases = () => {
 
   if (!ngoLocation)
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100 flex-col">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mb-4"></div>
-        <p className="text-gray-600 font-medium">Booting Satellite Uplink...</p>
-      </div>
+      <LoadingOverlay isVisible={true} text="Booting Satellite Uplink..." />
     );
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-gray-100 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-background overflow-hidden">
       {/* HEADER (Mobile) */}
-      <div className="md:hidden bg-blue-800 text-white p-4 flex flex-col gap-2 shadow-md z-20 sticky top-0">
+      <div className="md:hidden bg-primary-600 text-white p-4 flex flex-col gap-2 shadow-md z-20 sticky top-0">
         <div className="flex justify-between items-center">
-          <Link to="/dashboard/ngo" className="font-bold">
-            ← Back
+          <Link
+            to="/dashboard/ngo"
+            className="font-bold flex items-center gap-2"
+          >
+            <HiArrowLeft className="w-4 h-4" />
+            Back
           </Link>
           <span className="font-bold">Live Console</span>
           <div className="w-10"></div>
         </div>
-        <div className="flex bg-blue-900 rounded p-1 mt-2">
+        <div className="flex bg-primary-700 rounded p-1 mt-2">
           <button
             onClick={() => setFilter("all")}
             className={`flex-1 py-1 text-sm rounded ${
               filter === "all"
-                ? "bg-white text-blue-900 font-bold"
-                : "text-blue-200"
+                ? "bg-surface text-primary-600 font-bold"
+                : "text-primary-100"
             }`}
           >
             Nearby
@@ -310,8 +309,8 @@ const NGOActiveCases = () => {
             onClick={() => setFilter("claimed")}
             className={`flex-1 py-1 text-sm rounded ${
               filter === "claimed"
-                ? "bg-white text-blue-900 font-bold"
-                : "text-blue-200"
+                ? "bg-surface text-primary-600 font-bold"
+                : "text-primary-100"
             }`}
           >
             My Cases
@@ -321,24 +320,25 @@ const NGOActiveCases = () => {
 
       {/* LIST VIEW */}
       <div
-        className={`w-full md:w-1/3 bg-white border-r flex flex-col shadow-lg z-10 h-full ${
+        className={`w-full md:w-1/3 bg-surface border-r border-border flex flex-col shadow-lg z-10 h-full ${
           mobileView === "list" ? "flex" : "hidden md:flex"
         }`}
       >
-        <div className="hidden md:block p-4 bg-blue-800 text-white sticky top-0 z-10">
+        <div className="hidden md:block p-4 bg-primary-600 text-white sticky top-0 z-10">
           <Link
             to="/dashboard/ngo"
-            className="text-xs opacity-70 hover:underline hover:text-white mb-2 block"
+            className="text-xs text-primary-100 hover:text-white mb-2 block flex items-center gap-1"
           >
-            ← Back to Dashboard
+            <HiArrowLeft className="w-3 h-3" />
+            Back to Dashboard
           </Link>
-          <div className="flex bg-blue-900 rounded p-1 mt-2">
+          <div className="flex bg-primary-700 rounded p-1 mt-2">
             <button
               onClick={() => setFilter("all")}
               className={`flex-1 py-1 text-sm rounded ${
                 filter === "all"
-                  ? "bg-white text-blue-900 font-bold"
-                  : "text-blue-200"
+                  ? "bg-surface text-primary-600 font-bold"
+                  : "text-primary-100"
               }`}
             >
               All Nearby
@@ -347,8 +347,8 @@ const NGOActiveCases = () => {
               onClick={() => setFilter("claimed")}
               className={`flex-1 py-1 text-sm rounded ${
                 filter === "claimed"
-                  ? "bg-white text-blue-900 font-bold"
-                  : "text-blue-200"
+                  ? "bg-surface text-primary-600 font-bold"
+                  : "text-primary-100"
               }`}
             >
               My Claimed
@@ -358,7 +358,9 @@ const NGOActiveCases = () => {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {displayedReports.length === 0 && (
-            <p className="text-center py-10 text-gray-400">No reports found.</p>
+            <p className="text-center py-10 text-text-muted">
+              No reports found.
+            </p>
           )}
 
           {displayedReports.map((report) => {
@@ -372,24 +374,24 @@ const NGOActiveCases = () => {
                 onClick={() => setViewingReport(report)} // Open Detail Modal on Click
                 className={`p-4 rounded-lg border-l-4 shadow-sm cursor-pointer transition hover:shadow-md ${
                   isMyClaim
-                    ? "border-green-500 bg-green-50"
-                    : "border-red-500 bg-white"
+                    ? "border-success-500 bg-green-50"
+                    : "border-error-500 bg-surface"
                 }`}
               >
                 <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-gray-800">{report.type}</h3>
-                  <span className="text-xs text-gray-500">
+                  <h3 className="font-bold text-text-primary">{report.type}</h3>
+                  <span className="text-xs text-text-muted">
                     {new Date(report.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                <p className="text-sm text-text-secondary mt-1 line-clamp-2">
                   {report.description}
                 </p>
-                <p className="text-xs text-blue-600 mt-2 font-bold underline">
-                  View Details &gt;
+                <p className="text-xs text-primary-600 mt-2 font-bold">
+                  View Details →
                 </p>
               </div>
             );
@@ -453,26 +455,33 @@ const NGOActiveCases = () => {
       <div className="md:hidden absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1000]">
         <button
           onClick={() => setMobileView(mobileView === "list" ? "map" : "list")}
-          className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2"
+          className="bg-text-primary text-surface px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2"
         >
-          {mobileView === "list" ? <>🗺️ Map</> : <>📋 List</>}
+          {mobileView === "list" ? (
+            <>
+              <HiLocationMarker className="w-4 h-4" />
+              Map
+            </>
+          ) : (
+            <>📋 List</>
+          )}
         </button>
       </div>
 
-      {/* --- MODAL 1: VIEW DETAILS --- */}
+      {/* VIEW DETAILS MODAL */}
       {viewingReport && (
         <div className="absolute inset-0 z-[2000] bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="bg-surface rounded-xl w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col border border-border">
             {/* Header */}
-            <div className="bg-gray-100 p-4 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800">
+            <div className="bg-background p-4 border-b border-border flex justify-between items-center">
+              <h2 className="text-xl font-bold text-text-primary">
                 Report Details
               </h2>
               <button
                 onClick={() => setViewingReport(null)}
-                className="text-gray-500 hover:text-gray-800 text-2xl"
+                className="text-text-secondary hover:text-text-primary"
               >
-                &times;
+                <HiX className="w-6 h-6" />
               </button>
             </div>
 
@@ -483,40 +492,78 @@ const NGOActiveCases = () => {
                   <span
                     className={`px-2 py-1 rounded text-xs font-bold uppercase ${
                       viewingReport.severity === "High"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-yellow-100 text-yellow-800"
+                        ? "bg-error-100 text-error-700"
+                        : "bg-warning-100 text-warning-700"
                     }`}
                   >
                     {viewingReport.severity} Severity
                   </span>
-                  <h1 className="text-2xl font-bold mt-2">
+                  <h1 className="text-2xl font-bold mt-2 text-text-primary">
                     {viewingReport.type}
                   </h1>
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-text-muted text-sm">
                     Reported:{" "}
                     {new Date(viewingReport.createdAt).toLocaleString()}
                   </p>
                 </div>
-                {/* 🎯 THE LOCATE BUTTON */}
                 <button
                   onClick={() => handleLocate(viewingReport)}
-                  className="flex flex-col items-center justify-center text-blue-600 hover:bg-blue-50 p-2 rounded transition"
+                  className="flex flex-col items-center justify-center text-primary-600 hover:bg-primary-50 p-2 rounded transition"
                 >
-                  <span className="text-2xl">📍</span>
+                  <HiLocationMarker className="w-6 h-6" />
                   <span className="text-xs font-bold">Locate</span>
                 </button>
               </div>
 
-              <div className="bg-gray-50 p-4 rounded-lg mb-4 border">
-                <p className="text-gray-700 whitespace-pre-wrap">
+              <div className="bg-background p-4 rounded-lg mb-4 border border-border">
+                <p className="text-text-primary whitespace-pre-wrap">
                   {viewingReport.description}
                 </p>
               </div>
 
+              {/* Contact Info Section */}
+              {viewingReport.contact_info && (
+                <div className="mb-4">
+                  <h3 className="font-bold text-sm text-text-secondary mb-2">
+                    CONTACT INFORMATION
+                  </h3>
+                  <div className="bg-primary-50 p-3 rounded-lg border border-primary-200">
+                    {typeof viewingReport.contact_info === "string" ? (
+                      <p className="text-primary-700 font-medium">
+                        {viewingReport.contact_info}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        {viewingReport.contact_info.phone && (
+                          <p className="text-primary-700">
+                            📞 {viewingReport.contact_info.phone}
+                          </p>
+                        )}
+                        {viewingReport.contact_info.whatsapp && (
+                          <p className="text-primary-700">
+                            💬 {viewingReport.contact_info.whatsapp}
+                          </p>
+                        )}
+                        {viewingReport.contact_info.email && (
+                          <p className="text-primary-700">
+                            ✉️ {viewingReport.contact_info.email}
+                          </p>
+                        )}
+                        {viewingReport.contact_info.contact_person && (
+                          <p className="text-primary-700">
+                            👤 {viewingReport.contact_info.contact_person}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Images Grid */}
               {viewingReport.images && viewingReport.images.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="font-bold text-sm text-gray-500 mb-2">
+                  <h3 className="font-bold text-sm text-text-secondary mb-2">
                     ATTACHED EVIDENCE
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
@@ -525,7 +572,7 @@ const NGOActiveCases = () => {
                         key={i}
                         src={img}
                         alt="Evidence"
-                        className="w-full h-32 object-cover rounded-lg border hover:scale-105 transition"
+                        className="w-full h-32 object-cover rounded-lg border border-border hover:scale-105 transition"
                       />
                     ))}
                   </div>
@@ -534,8 +581,7 @@ const NGOActiveCases = () => {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t bg-gray-50 flex gap-3">
-              {/* Logic to show Claim or Resolve buttons inside detail modal */}
+            <div className="p-4 border-t border-border bg-background flex gap-3">
               {viewingReport.claimed_by &&
               (viewingReport.claimed_by._id === user.id ||
                 viewingReport.claimed_by === user.id) ? (
@@ -544,7 +590,7 @@ const NGOActiveCases = () => {
                     setViewingReport(null);
                     setResolveModalId(viewingReport._id);
                   }}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow"
+                  className="w-full bg-success-500 hover:bg-success-600 text-white py-3 rounded-lg font-bold shadow transition-colors"
                 >
                   ✅ Mark as Resolved
                 </button>
@@ -554,12 +600,12 @@ const NGOActiveCases = () => {
                     handleClaim(viewingReport._id);
                     setViewingReport(null);
                   }}
-                  className="w-full bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 shadow"
+                  className="w-full bg-error-500 hover:bg-error-600 text-white py-3 rounded-lg font-bold shadow transition-colors"
                 >
                   ✋ Claim This Case
                 </button>
               ) : (
-                <div className="w-full text-center py-3 text-gray-500 font-bold bg-gray-200 rounded-lg">
+                <div className="w-full text-center py-3 text-text-muted font-bold bg-background rounded-lg border border-border">
                   Locked (Assigned to other)
                 </div>
               )}
@@ -568,14 +614,14 @@ const NGOActiveCases = () => {
         </div>
       )}
 
-      {/* --- MODAL 2: RESOLVE (Upload Proof) --- */}
+      {/* RESOLVE MODAL */}
       {resolveModalId && (
         <div className="absolute inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
+          <div className="bg-surface rounded-lg p-6 w-full max-w-sm shadow-2xl border border-border">
+            <h3 className="text-lg font-bold text-text-primary mb-2">
               Complete Mission
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-text-secondary mb-4">
               Upload a photo to prove aid was delivered.
             </p>
             <form onSubmit={handleResolveSubmit}>
@@ -583,7 +629,7 @@ const NGOActiveCases = () => {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setProofFile(e.target.files[0])}
-                className="w-full border p-2 rounded mb-4 text-sm"
+                className="w-full border border-border bg-background text-text-primary p-2 rounded mb-4 text-sm"
                 required
               />
               <div className="flex gap-2">
@@ -593,16 +639,23 @@ const NGOActiveCases = () => {
                     setResolveModalId(null);
                     setProofFile(null);
                   }}
-                  className="flex-1 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                  className="flex-1 py-2 text-text-secondary hover:bg-background rounded border border-border transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="flex-1 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700"
+                  className="flex-1 py-2 bg-success-500 hover:bg-success-600 text-white rounded font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {uploading ? "Uploading..." : "Confirm"}
+                  {uploading ? (
+                    "Uploading..."
+                  ) : (
+                    <>
+                      <HiUpload className="w-4 h-4" />
+                      Confirm
+                    </>
+                  )}
                 </button>
               </div>
             </form>
