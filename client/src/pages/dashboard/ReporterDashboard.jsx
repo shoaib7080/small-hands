@@ -98,12 +98,14 @@ const ReportModal = ({ report, isOpen, onClose }) => {
                   {new Date(report.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-text-secondary">
-                <HiLocationMarker className="w-4 h-4" />
-                <span className="text-sm">
-                  {report.location?.coordinates?.[1]?.toFixed(4)},{" "}
-                  {report.location?.coordinates?.[0]?.toFixed(4)}
-                </span>
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/dashboard/reporter/create?lat=${report.location?.coordinates?.[1]}&lng=${report.location?.coordinates?.[0]}`}
+                  className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
+                  <HiLocationMarker className="w-4 h-4" />
+                  View on Map
+                </Link>
               </div>
             </div>
 

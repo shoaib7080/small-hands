@@ -5,13 +5,16 @@ import {
   Marker,
   Popup,
   useMapEvents,
+  useMap,
 } from "react-leaflet";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { HiArrowLeft, HiPlus, HiLocationMarker } from "react-icons/hi";
 import api from "../../services/api";
 import "leaflet/dist/leaflet.css";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import imageCompression from "browser-image-compression";
+import heic2any from "heic2any";
 
 // 1. Component to Handle Map Clicks & User Location
 const MapClickParams = ({ setCoords }) => {
@@ -32,42 +35,137 @@ const MapClickParams = ({ setCoords }) => {
   return null;
 };
 
+const MapController = ({ coords }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (coords) {
+      map.flyTo(coords, 14);
+    }
+  }, [coords, map]);
+
+  return null;
+};
+
 const ReporterHome = () => {
   const [coords, setCoords] = useState(null); // [lat, lng]
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [myReports, setMyReports] = useState([]);
+  const [searchParams] = useSearchParams();
+  const [processedImages, setProcessedImages] = useState([]);
+  // const [formData, setFormData] = useState({ image: null });
+  const [imagePreview, setImagePreview] = useState(null);
 
   const { register, handleSubmit, reset } = useForm();
 
-  // 2. Submit Handler
+  // Load user's reports and handle URL params
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await api.get("/reports/my-reports");
+        setMyReports(response.data.data);
+      } catch (err) {
+        console.error("Failed to load reports");
+      }
+    };
+
+    fetchReports();
+
+    // Check if location is passed via URL
+    const lat = searchParams.get("lat");
+    const lng = searchParams.get("lng");
+    if (lat && lng) {
+      setCoords([parseFloat(lat), parseFloat(lng)]);
+    }
+  }, [searchParams]);
+
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    const processed = [];
+
+    // Show loading state if you have one (e.g., setUploading(true))
+
+    for (const file of files) {
+      try {
+        let imageFile = file;
+
+        console.log(
+          `Original: ${imageFile.size / 1024 / 1024} MB - ${imageFile.type}`
+        );
+
+        // Convert HEIC to JPEG
+        if (
+          imageFile.type === "image/heic" ||
+          imageFile.name.toLowerCase().endsWith(".heic")
+        ) {
+          const convertedBlob = await heic2any({
+            blob: imageFile,
+            toType: "image/jpeg",
+            quality: 0.8,
+          });
+          imageFile = new File(
+            [convertedBlob],
+            imageFile.name.replace(/\.heic$/i, ".jpg"),
+            { type: "image/jpeg" }
+          );
+        }
+
+        // Compress image
+        const options = {
+          maxSizeMB: 0.6,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+          fileType: "image/jpeg",
+        };
+
+        const compressedFile = await imageCompression(imageFile, options);
+        processed.push(compressedFile);
+
+        console.log(
+          `Compressed: ${compressedFile.size / 1024 / 1024} MB - ${
+            compressedFile.type
+          }`
+        );
+      } catch (error) {
+        console.error("Image processing failed:", error);
+        toast.error(`Failed to process: ${file.name}`);
+      }
+    }
+
+    setProcessedImages(processed);
+  };
+
+  // Submit Handler
   const onSubmit = async (data) => {
     if (!coords)
       return toast.error("Please click on the map to pin a location first!");
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append("type", data.type);
-    formData.append("description", data.description);
-    formData.append("contact_info", data.contact_info || "");
-    formData.append("severity", data.severity);
-    formData.append("latitude", coords[0]);
-    formData.append("longitude", coords[1]);
+    const apiPayload = new FormData();
 
-    // Append files (if any)
-    if (data.images && data.images.length > 0) {
-      for (let i = 0; i < data.images.length; i++) {
-        formData.append("images", data.images[i]);
-      }
-    }
+    // Add text fields from RHF 'data'
+    apiPayload.append("type", data.type);
+    apiPayload.append("description", data.description);
+    apiPayload.append("contact_info", data.contact_info || "");
+    apiPayload.append("severity", data.severity);
+    apiPayload.append("latitude", coords[0]);
+    apiPayload.append("longitude", coords[1]);
+
+    // Use processedImages instead of formData.image
+    processedImages.forEach((image) => {
+      apiPayload.append("images", image);
+    });
 
     try {
-      await api.post("/reports", formData, {
+      await api.post("/reports", apiPayload, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success("Help Request Posted! NGOs notified.");
       setShowModal(false);
       reset();
       setCoords(null);
+      setProcessedImages([]);
     } catch (err) {
       toast.error("Failed to post report.");
     } finally {
@@ -88,13 +186,43 @@ const ReporterHome = () => {
       {/* The Map */}
       <MapContainer
         center={[28.61, 77.2]}
-        zoom={5}
+        zoom={coords ? 14 : 5}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <MapClickParams setCoords={setCoords} />
+        <MapController coords={coords} />
 
-        {/* Show Pin where user clicked */}
+        {/* Show user's reports */}
+        {myReports.map((report) => (
+          <Marker
+            key={report._id}
+            position={[
+              report.location.coordinates[1],
+              report.location.coordinates[0],
+            ]}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-medium">{report.type}</h3>
+                <p className="text-sm text-gray-600">{report.description}</p>
+                <span
+                  className={`inline-block px-2 py-1 rounded text-xs mt-1 ${
+                    report.status === "Resolved"
+                      ? "bg-green-100 text-green-700"
+                      : report.status === "Claimed"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-yellow-100 text-yellow-700"
+                  }`}
+                >
+                  {report.status}
+                </span>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
+        {/* Show new pin where user clicked */}
         {coords && (
           <Marker position={coords}>
             <Popup>Location Selected</Popup>
@@ -190,9 +318,11 @@ const ReporterHome = () => {
                 </label>
                 <input
                   type="file"
-                  {...register("images")}
-                  className="w-full text-text-secondary text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100"
+                  name="images"
                   accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full text-text-secondary text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100"
+                  multiple
                 />
               </div>
 
