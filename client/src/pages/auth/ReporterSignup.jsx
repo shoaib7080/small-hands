@@ -146,8 +146,14 @@ const ReporterSignup = () => {
         code: verificationCode,
       });
 
-      toast.success("Registration completed! You can now login.");
-      navigate("/login");
+      // Auto-login after successful verification
+      const { token, user } = response.data.data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      toast.success("Registration completed! Welcome!");
+      navigate("/dashboard/reporter");
     } catch (error) {
       toast.error("Invalid verification code");
     } finally {

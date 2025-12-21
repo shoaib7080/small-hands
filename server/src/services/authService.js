@@ -1,8 +1,11 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import Reporter from "../models/reporterModel.js";
 import NGO from "../models/ngoModel.js";
 import Admin from "../models/adminModel.js";
+import PendingRegistration from "../models/pendingRegistrationModel.js";
+import sendEmail from "../utils/email.js";
 
 // Helper to generate Token
 const generateToken = (id, role) => {
@@ -11,26 +14,110 @@ const generateToken = (id, role) => {
   });
 };
 
-// 1. Reporter Registration
+// Reporter Registration (OTP-based)
 export const registerReporter = async (data) => {
-  const { name, phone, password } = data;
-  const existing = await Reporter.findOne({ phone });
-  if (existing) throw new Error("Phone number already registered");
+  const { name, email, phone, password } = data;
 
+  // Check if email exists in Reporter or NGO collections
+  const existingReporter = await Reporter.findOne({ email });
+  const existingNGO = await NGO.findOne({ email });
+
+  if (existingReporter || existingNGO) {
+    throw new Error("Email already registered");
+  }
+
+  // Check if phone exists (if provided)
+  if (phone) {
+    const existingPhone = await Reporter.findOne({ phone });
+    if (existingPhone) {
+      throw new Error("Phone number already registered");
+    }
+  }
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
   const hashedPassword = await bcrypt.hash(password, 10);
-  const reporter = await Reporter.create({
-    name,
-    phone,
-    password: hashedPassword,
+
+  // Update or create in PendingRegistration
+  await PendingRegistration.findOneAndUpdate(
+    { email },
+    {
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      role: "reporter",
+      emailVerificationToken: hashedOTP,
+      emailVerificationExpires: Date.now() + 10 * 60 * 1000,
+    },
+    { upsert: true, new: true }
+  );
+
+  // Send email
+  const message = `Your verification code is: ${otp}\nValid for 10 minutes.`;
+  await sendEmail({
+    email,
+    subject: "Small Hands: Verify your Email",
+    message,
   });
 
+  console.log(`✅ OTP sent to ${email}: ${otp}`);
+
+  return { email };
+};
+
+// Verify Reporter Registration
+export const verifyReporterRegistration = async (email, code) => {
+  const hashedOTP = crypto.createHash("sha256").update(code).digest("hex");
+
+  // Find in PendingRegistration collection
+  const pendingUser = await PendingRegistration.findOne({
+    email,
+    emailVerificationToken: hashedOTP,
+    emailVerificationExpires: { $gt: Date.now() },
+  });
+
+  if (!pendingUser) {
+    throw new Error("Invalid or expired verification code");
+  }
+
+  // Check for duplicate phone number before creating user
+  if (pendingUser.phone) {
+    const existingPhone = await Reporter.findOne({
+      phone: pendingUser.phone,
+    });
+    if (existingPhone) {
+      throw new Error("Phone number already registered");
+    }
+  }
+
+  // Create user in Reporter collection
+  const newUser = await Reporter.create({
+    name: pendingUser.name,
+    email: pendingUser.email,
+    phone: pendingUser.phone,
+    password: pendingUser.password, // Already hashed
+    isEmailVerified: true,
+  });
+
+  // Delete from PendingRegistration
+  await PendingRegistration.findByIdAndDelete(pendingUser._id);
+
+  // Return login data
   return {
-    user: { id: reporter._id, name: reporter.name, role: "reporter" },
-    token: generateToken(reporter._id, "reporter"),
+    user: {
+      id: newUser._id,
+      name: newUser.name,
+      role: "reporter",
+      phone: newUser.phone,
+      email: newUser.email,
+    },
+    token: generateToken(newUser._id, "reporter"),
   };
 };
 
-// 2. NGO Registration
+// NGO Registration
 export const registerNGO = async (data) => {
   const {
     name,

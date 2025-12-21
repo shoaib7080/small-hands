@@ -3,7 +3,6 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import sendEmail from "../utils/email.js";
 import Reporter from "../models/reporterModel.js";
-import PendingRegistration from "../models/pendingRegistrationModel.js";
 import NGO from "../models/ngoModel.js";
 import { OAuth2Client } from "google-auth-library";
 import { createSendToken } from "../utils/jwtToken.js";
@@ -67,59 +66,17 @@ export const register = async (req, res, next) => {
     const { role, email } = req.body;
 
     if (role === "reporter") {
-      // Check if email exists in Reporter or NGO collections
-      const existingReporter = await Reporter.findOne({ email });
-      const existingNGO = await NGO.findOne({ email });
-
-      if (existingReporter || existingNGO) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
-
-      // Check if phone exists (if provided)
-      if (phone) {
-        const existingPhone = await Reporter.findOne({ phone });
-        if (existingPhone) {
-          return res
-            .status(400)
-            .json({ message: "Phone number already registered" });
-        }
-      }
-
-      // Generate OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
-      const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-      // Update or create in PendingRegistration
-      await PendingRegistration.findOneAndUpdate(
-        { email },
-        {
-          name: req.body.name,
-          email: req.body.email,
-          phone: req.body.phone,
-          password: hashedPassword,
-          role: req.body.role,
-          emailVerificationToken: hashedOTP,
-          emailVerificationExpires: Date.now() + 10 * 60 * 1000,
-        },
-        { upsert: true, new: true }
-      );
-
-      // Send email
-      const message = `Your verification code is: ${otp}\nValid for 10 minutes.`;
-      await sendEmail({
-        email: email,
-        subject: "Small Hands: Verify your Email",
-        message,
-      });
-
-      console.log(`✅ OTP sent to ${email}: ${otp}`);
-
+      const result = await authService.registerReporter(req.body);
       res.status(201).json({
         status: "success",
         message: "Verification code sent to your email!",
-        data: { email },
+        data: result,
       });
+    } else if (role === "ngo") {
+      const result = await authService.registerNGO(req.body);
+      res.status(201).json({ status: "success", data: result });
+    } else {
+      throw new Error("Invalid role");
     }
   } catch (err) {
     next(err);
@@ -129,49 +86,12 @@ export const register = async (req, res, next) => {
 export const verifyEmailRegistration = async (req, res, next) => {
   try {
     const { email, code } = req.body;
-
-    const hashedOTP = crypto.createHash("sha256").update(code).digest("hex");
-
-    // Find in PendingRegistration collection
-    const pendingUser = await PendingRegistration.findOne({
-      email,
-      emailVerificationToken: hashedOTP,
-      emailVerificationExpires: { $gt: Date.now() },
-    });
-
-    if (!pendingUser) {
-      return res
-        .status(400)
-        .json({ message: "Invalid or expired verification code" });
-    }
-
-    // Check for duplicate phone number before creating user
-    if (pendingUser.phone) {
-      const existingPhone = await Reporter.findOne({
-        phone: pendingUser.phone,
-      });
-      if (existingPhone) {
-        return res
-          .status(400)
-          .json({ message: "Phone number already registered" });
-      }
-    }
-
-    // Create user in Reporter collection
-    await Reporter.create({
-      name: pendingUser.name,
-      email: pendingUser.email,
-      phone: pendingUser.phone,
-      password: pendingUser.password, // Already hashed
-      isEmailVerified: true,
-    });
-
-    // Delete from PendingRegistration
-    await PendingRegistration.findByIdAndDelete(pendingUser._id);
+    const loginData = await authService.verifyReporterRegistration(email, code);
 
     res.status(200).json({
       status: "success",
-      message: "Registration completed! You can now login.",
+      message: "Registration completed! You are now logged in.",
+      data: loginData,
     });
   } catch (err) {
     next(err);
