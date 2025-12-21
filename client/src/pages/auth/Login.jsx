@@ -8,6 +8,7 @@ import { HiMail, HiLockClosed } from "react-icons/hi";
 import api from "../../services/api";
 import Input from "../../components/common/Input";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
+import { GoogleLogin } from "@react-oauth/google";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Email or Phone is required"),
@@ -19,6 +20,27 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const response = await api.post("/auth/google", {
+        token: credentialResponse.credential,
+      });
+
+      const { token, data } = response.data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      toast.success("Logged in with Google! 🚀");
+
+      // Redirect based on role
+      if (data.user.role === "reporter") navigate("/dashboard/reporter");
+      else if (data.user.role === "ngo") navigate("/dashboard/ngo");
+      else if (data.user.role === "admin") navigate("/admin");
+    } catch (err) {
+      toast.error("Google Login Failed. Please try again.");
+    }
+  };
 
   // 2. Setup Form Hook
   const {
@@ -104,6 +126,24 @@ const Login = () => {
               {isSubmitting ? "Logging in..." : "Login"}
             </button>
           </form>
+
+          {/* Add Google Login */}
+          <div className="relative flex py-3 items-center mb-4">
+            <div className="flex-grow border-t border-border"></div>
+            <span className="flex-shrink mx-4 text-text-muted text-sm">OR</span>
+            <div className="flex-grow border-t border-border"></div>
+          </div>
+
+          <div className="flex justify-center mb-4">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => toast.error("Google Sign In Failed")}
+              theme="filled_blue"
+              size="large"
+              text="signin_with"
+              width="300"
+            />
+          </div>
 
           {/* Forgot Password Link */}
           <div className="text-center mb-4">

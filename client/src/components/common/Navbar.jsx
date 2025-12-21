@@ -197,16 +197,15 @@ const Navbar = () => {
               </div>
             )}
 
-            <Link
-              to="/leaderboard"
-              className="block text-text-secondary font-medium py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              Leaderboard
-            </Link>
-
             {!user ? (
               <>
+                <Link
+                  to="/leaderboard"
+                  className="block text-text-secondary font-medium py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Leaderboard
+                </Link>
                 <Link
                   to="/login"
                   className="block text-text-secondary font-medium py-2"
@@ -224,14 +223,28 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Link
-                  to={getDashboardLink()}
-                  className="block text-primary-600 font-bold py-2 flex items-center gap-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <HiViewGrid className="w-4 h-4" />
-                  Dashboard
-                </Link>
+                {/* Show Leaderboard when NOT on leaderboard */}
+                {location.pathname !== "/leaderboard" && (
+                  <Link
+                    to="/leaderboard"
+                    className="block text-text-secondary font-medium py-2"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Leaderboard
+                  </Link>
+                )}
+
+                {/* Show Dashboard when ON leaderboard */}
+                {location.pathname === "/leaderboard" && (
+                  <Link
+                    to={getDashboardLink()}
+                    className=" text-primary-600 font-bold py-2 flex items-center gap-2"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <HiArrowLeft className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                )}
                 <button
                   onClick={handleLogout}
                   className="block w-full text-left text-error-500 font-medium py-2 flex items-center gap-2"

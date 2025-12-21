@@ -192,6 +192,8 @@ const ReporterDashboard = () => {
           api.get("/reports/my-reports"),
         ]);
 
+        console.log("Fetched user data:", userData.data.data);
+        console.log("Fetched reports data:", reportsData.data.data);
         setUser(userData.data.data);
         setMyReports(reportsData.data.data);
         localStorage.setItem("user", JSON.stringify(userData.data.data));
@@ -204,25 +206,26 @@ const ReporterDashboard = () => {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const { data: userData } = await api.get("/auth/me");
-        setUser(userData.data);
+  // useEffect(() => {
+  //   const fetchStats = async () => {
+  //     try {
+  //       const { data: userData } = await api.get("/auth/me");
+  //       console.log("Fetched user stats:", userData.data);
+  //       setUser(userData.data);
 
-        localStorage.setItem("user", JSON.stringify(userData.data));
+  //       localStorage.setItem("user", JSON.stringify(userData.data));
 
-        // (Optional) Fetch history if you want list
-        // const { data: reports } = await api.get('/reports/my-history');
-        // setMyReports(reports.data);
-      } catch (err) {
-        console.error("Failed to load stats");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
+  //       // (Optional) Fetch history if you want list
+  //       // const { data: reports } = await api.get('/reports/my-history');
+  //       // setMyReports(reports.data);
+  //     } catch (err) {
+  //       console.error("Failed to load stats");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchStats();
+  // }, []);
 
   const handleReportClick = (report) => {
     setSelectedReport(report);
