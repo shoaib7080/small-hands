@@ -43,7 +43,7 @@ const NGOActiveCases = () => {
   const [filter, setFilter] = useState("all");
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [checkingVerification, setCheckingVerification] = useState(true);
-  
+
   // Overlay Loading State
   const [isLoadingOverlay, setIsLoadingOverlay] = useState(false);
   const [overlayText, setOverlayText] = useState("Loading...");
@@ -382,12 +382,14 @@ const NGOActiveCases = () => {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex flex-col">
-                      <h3 className="font-bold text-text-primary">{report.type}</h3>
-                      {report.status === "Resolved" && (
-                          <span className="text-xs bg-success-100 text-success-700 px-2 py-0.5 rounded-full w-fit font-bold mt-1">
-                              ✅ Resolved
-                          </span>
-                      )}
+                    <h3 className="font-bold text-text-primary">
+                      {report.type}
+                    </h3>
+                    {report.status === "Resolved" && (
+                      <span className="text-xs bg-success-100 text-success-700 px-2 py-0.5 rounded-full w-fit font-bold mt-1">
+                        ✅ Resolved
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs text-text-muted">
                     {new Date(report.createdAt).toLocaleTimeString([], {
@@ -411,13 +413,15 @@ const NGOActiveCases = () => {
       {/* MAP VIEW */}
       <div
         className={`w-full md:w-2/3 relative h-full ${
-          mobileView === "map" ? "block" : "hidden md:block"
+          mobileView === "map" ? "h-[calc(100vh-120px)]" : "hidden md:block"
         }`}
       >
         <MapContainer
           center={mapCenter || ngoLocation}
           zoom={13}
           enableSearch={true}
+          className="h-full w-full"
+          key={mobileView}
           // The shared component handles flyTo via 'center' prop automatically
           // If we need to force flyTo when user clicks 'Locate', we pass that state as center
           // So we update our state logic slightly: mapCenter overrides ngoLocation
@@ -429,9 +433,12 @@ const NGOActiveCases = () => {
           {displayedReports.map((report) => {
             const isHighlighted = report._id === highlightedId;
             // Use Green for both Claimed and Resolved (My Cases)
-            const isMine = report.claimed_by && (report.claimed_by._id === user.id || report.claimed_by === user.id);
+            const isMine =
+              report.claimed_by &&
+              (report.claimed_by._id === user.id ||
+                report.claimed_by === user.id);
             let icon = isMine ? greenIcon : redIcon;
-            
+
             if (isHighlighted) icon = isMine ? greenIconBig : redIconBig;
 
             return (
