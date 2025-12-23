@@ -1,20 +1,19 @@
 import { useState, useEffect } from "react";
 import {
-  MapContainer,
   TileLayer,
   Marker,
   Popup,
   useMapEvents,
   useMap,
 } from "react-leaflet";
+import MapContainer from "../../components/map/MapContainer";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { HiArrowLeft, HiPlus, HiLocationMarker } from "react-icons/hi";
 import api from "../../services/api";
 import "leaflet/dist/leaflet.css";
 import { Link, useSearchParams } from "react-router-dom";
-import imageCompression from "browser-image-compression";
-import heic2any from "heic2any";
+import { processImages } from "../../utils/imageUtils";
 
 // 1. Component to Handle Map Clicks & User Location
 const MapClickParams = ({ setCoords }) => {
@@ -35,17 +34,6 @@ const MapClickParams = ({ setCoords }) => {
   return null;
 };
 
-const MapController = ({ coords }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (coords) {
-      map.flyTo(coords, 14);
-    }
-  }, [coords, map]);
-
-  return null;
-};
 
 const ReporterHome = () => {
   const [coords, setCoords] = useState(null); // [lat, lng]
@@ -82,57 +70,9 @@ const ReporterHome = () => {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-    const processed = [];
-
-    // Show loading state if you have one (e.g., setUploading(true))
-
-    for (const file of files) {
-      try {
-        let imageFile = file;
-
-        console.log(
-          `Original: ${imageFile.size / 1024 / 1024} MB - ${imageFile.type}`
-        );
-
-        // Convert HEIC to JPEG
-        if (
-          imageFile.type === "image/heic" ||
-          imageFile.name.toLowerCase().endsWith(".heic")
-        ) {
-          const convertedBlob = await heic2any({
-            blob: imageFile,
-            toType: "image/jpeg",
-            quality: 0.8,
-          });
-          imageFile = new File(
-            [convertedBlob],
-            imageFile.name.replace(/\.heic$/i, ".jpg"),
-            { type: "image/jpeg" }
-          );
-        }
-
-        // Compress image
-        const options = {
-          maxSizeMB: 0.6,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-          fileType: "image/jpeg",
-        };
-
-        const compressedFile = await imageCompression(imageFile, options);
-        processed.push(compressedFile);
-
-        console.log(
-          `Compressed: ${compressedFile.size / 1024 / 1024} MB - ${
-            compressedFile.type
-          }`
-        );
-      } catch (error) {
-        console.error("Image processing failed:", error);
-        toast.error(`Failed to process: ${file.name}`);
-      }
-    }
-
+    
+    // Show loading state if you have one
+    const processed = await processImages(files);
     setProcessedImages(processed);
   };
 
@@ -185,14 +125,11 @@ const ReporterHome = () => {
       </div>
       {/* The Map */}
       <MapContainer
-        center={[28.61, 77.2]}
-        zoom={coords ? 14 : 5}
-        style={{ height: "100%", width: "100%" }}
+        center={coords || [28.61, 77.2]}
+        zoom={13}
+        enableSearch={true}
+        onMapClick={(latlng) => setCoords([latlng.lat, latlng.lng])}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <MapClickParams setCoords={setCoords} />
-        <MapController coords={coords} />
-
         {/* Show user's reports */}
         {myReports.map((report) => (
           <Marker

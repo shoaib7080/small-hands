@@ -110,13 +110,22 @@ export const login = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, latitude, longitude } = req.body;
     const userId = req.user.id;
+
+    // Extract uploaded document URLs if any
+    let documentUrls = [];
+    if (req.files && req.files.length > 0) {
+      documentUrls = req.files.map((file) => file.path);
+    }
 
     const updatedUser = await authService.updateUserProfile(userId, {
       name,
       email,
       phone,
+      latitude,
+      longitude,
+      documents: documentUrls,
     });
     res.status(200).json({ status: "success", data: updatedUser });
   } catch (err) {

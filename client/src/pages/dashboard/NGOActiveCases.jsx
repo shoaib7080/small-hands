@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Marker, Popup } from "react-leaflet";
 import { io } from "socket.io-client";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -7,6 +7,7 @@ import { HiArrowLeft, HiLocationMarker, HiX, HiUpload } from "react-icons/hi";
 import L from "leaflet";
 import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
+import MapContainer from "../../components/map/MapContainer";
 import "leaflet/dist/leaflet.css";
 
 // --- ICONS CONFIGURATION ---
@@ -34,24 +35,6 @@ const greenIcon = createIcon(greenUrl, [25, 41]);
 const redIconBig = createIcon(redUrl, [35, 57]);
 const greenIconBig = createIcon(greenUrl, [35, 57]);
 
-const MapController = ({ centerLocation, mobileView }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    // Fix Map Grey Area on Tab Switch
-    setTimeout(() => map.invalidateSize(), 200);
-  }, [mobileView, map]);
-
-  useEffect(() => {
-    // Fly to location if user clicked "Locate"
-    if (centerLocation) {
-      map.flyTo(centerLocation, 15, { animate: true });
-    }
-  }, [centerLocation, map]);
-
-  return null;
-};
-
 const NGOActiveCases = () => {
   const [reports, setReports] = useState([]);
   const [ngoLocation, setNgoLocation] = useState(null);
@@ -60,6 +43,10 @@ const NGOActiveCases = () => {
   const [filter, setFilter] = useState("all");
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [checkingVerification, setCheckingVerification] = useState(true);
+  
+  // Overlay Loading State
+  const [isLoadingOverlay, setIsLoadingOverlay] = useState(false);
+  const [overlayText, setOverlayText] = useState("Loading...");
 
   // Modal State
   const [proofFile, setProofFile] = useState(null);
@@ -157,6 +144,8 @@ const NGOActiveCases = () => {
 
     const fetchData = async () => {
       try {
+        setIsLoadingOverlay(true);
+        setOverlayText("Fetching Cases...");
         let endpoint = "";
         if (filter === "all") {
           // Fetch Nearby Open Reports
@@ -170,6 +159,8 @@ const NGOActiveCases = () => {
         setReports(data.data);
       } catch (err) {
         toast.error("Failed to fetch cases");
+      } finally {
+        setIsLoadingOverlay(false);
       }
     };
     fetchData();
@@ -178,6 +169,8 @@ const NGOActiveCases = () => {
   // 3. Claim Handler
   const handleClaim = async (reportId) => {
     try {
+      setIsLoadingOverlay(true);
+      setOverlayText("Claiming Case...");
       await api.patch(`/reports/${reportId}/claim`);
       toast.success("Case Claimed! You are the responder.");
 
@@ -191,6 +184,8 @@ const NGOActiveCases = () => {
       );
     } catch (err) {
       toast.error("Failed to claim case.");
+    } finally {
+      setIsLoadingOverlay(false);
     }
   };
 
@@ -209,8 +204,14 @@ const NGOActiveCases = () => {
       });
       toast.success("Case Resolved! +50 Impact Points added.");
 
-      // Remove the resolved report from the list (it's closed now)
-      setReports((prev) => prev.filter((r) => r._id !== resolveModalId));
+      // Update report status locally instead of removing
+      setReports((prev) =>
+        prev.map((r) =>
+          r._id === resolveModalId
+            ? { ...r, status: "Resolved", resolution_images: [] } // Mark as resolved
+            : r
+        )
+      );
       setResolveModalId(null);
       setProofFile(null);
     } catch (err) {
@@ -281,6 +282,7 @@ const NGOActiveCases = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-background overflow-hidden">
+      <LoadingOverlay isVisible={isLoadingOverlay} text={overlayText} />
       {/* HEADER (Mobile) */}
       <div className="md:hidden bg-primary-600 text-white p-4 flex flex-col gap-2 shadow-md z-20 sticky top-0">
         <div className="flex justify-between items-center">
@@ -379,7 +381,14 @@ const NGOActiveCases = () => {
                 }`}
               >
                 <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-text-primary">{report.type}</h3>
+                  <div className="flex flex-col">
+                      <h3 className="font-bold text-text-primary">{report.type}</h3>
+                      {report.status === "Resolved" && (
+                          <span className="text-xs bg-success-100 text-success-700 px-2 py-0.5 rounded-full w-fit font-bold mt-1">
+                              ✅ Resolved
+                          </span>
+                      )}
+                  </div>
                   <span className="text-xs text-text-muted">
                     {new Date(report.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -406,24 +415,24 @@ const NGOActiveCases = () => {
         }`}
       >
         <MapContainer
-          center={ngoLocation}
+          center={mapCenter || ngoLocation}
           zoom={13}
-          style={{ height: "100%", width: "100%" }}
+          enableSearch={true}
+          // The shared component handles flyTo via 'center' prop automatically
+          // If we need to force flyTo when user clicks 'Locate', we pass that state as center
+          // So we update our state logic slightly: mapCenter overrides ngoLocation
         >
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-          <MapController centerLocation={mapCenter} mobileView={mobileView} />
-
           <Marker position={ngoLocation}>
             <Popup>HQ</Popup>
           </Marker>
 
           {displayedReports.map((report) => {
             const isHighlighted = report._id === highlightedId;
-            const isClaimed = report.status === "Claimed";
-            // Logic: If highlighted, use BIG icon. Else use normal red/green.
-            let icon = isClaimed ? greenIcon : redIcon;
-            if (isHighlighted) icon = isClaimed ? greenIconBig : redIconBig;
+            // Use Green for both Claimed and Resolved (My Cases)
+            const isMine = report.claimed_by && (report.claimed_by._id === user.id || report.claimed_by === user.id);
+            let icon = isMine ? greenIcon : redIcon;
+            
+            if (isHighlighted) icon = isMine ? greenIconBig : redIconBig;
 
             return (
               <Marker

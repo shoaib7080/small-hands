@@ -188,8 +188,10 @@ export const getMyCases = async (req, res, next) => {
   try {
     const reports = await Report.find({
       claimed_by: req.user.id,
-      status: { $ne: "Resolved" }, // Show 'Claimed' but not 'Resolved' (History shows resolved)
-    }).populate("reporter_id", "name phone");
+      // Include all statuses (Claimed & Resolved)
+    })
+      .populate("reporter_id", "name phone")
+      .sort({ status: 1, updatedAt: -1 }); // 'Claimed' comes before 'Resolved'
 
     res
       .status(200)
@@ -212,6 +214,26 @@ export const getMyReports = async (req, res, next) => {
       status: "success",
       count: reports.length,
       data: reports,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get most recent resolved case for NGO dashboard
+export const getRecentResolvedCases = async (req, res, next) => {
+  try {
+    const recentCases = await Report.find({
+      status: "Resolved",
+    })
+      .populate("reporter_id", "name")
+      .populate("claimed_by", "name")
+      .sort({ updatedAt: -1 })
+      .limit(3);
+
+    res.status(200).json({
+      status: "success",
+      data: recentCases,
     });
   } catch (err) {
     next(err);

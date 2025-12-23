@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
@@ -9,31 +9,116 @@ import {
   HiArrowLeft,
   HiCheckCircle,
   HiXCircle,
+  HiLocationMarker,
+  HiUpload,
+  HiX,
 } from "react-icons/hi";
+import { Marker, Popup } from "react-leaflet";
 import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
+import MapContainer from "../../components/map/MapContainer";
+import "leaflet/dist/leaflet.css";
+import { processImages } from "../../utils/imageUtils";
 
-const UserProfile = () => {
-  const [user, setUser] = useState(() => {
+  const UserProfile = () => {
+   const [user, setUser] = useState(() => {
     const userData = localStorage.getItem("user");
     return userData ? JSON.parse(userData) : null;
   });
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    phone: user?.phone || "",
-    email: user?.email || "",
-  });
+
   const [loading, setLoading] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [sendingCode, setSendingCode] = useState(false);
   const navigate = useNavigate();
 
+  // ... (existing state)
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    owner_name: user?.owner_name || "",
+    phone: user?.phone || "",
+    email: user?.email || "",
+  });
+
+  // NGO Specific State
+  const [ngoFiles, setNgoFiles] = useState([]);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+
+  // Load initial location if NGO
+  // Fetch latest user data on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await api.get("/auth/me");
+        const freshUser = data.data;
+        
+        // Update Local Storage & State
+        localStorage.setItem("user", JSON.stringify(freshUser));
+        setUser(freshUser);
+
+        // Update Form Data
+        setFormData({
+            name: freshUser.name || "",
+            owner_name: freshUser.owner_name || "", // Add owner name
+            phone: freshUser.phone || "",
+            email: freshUser.email || "",
+        });
+
+        // Update Location if NGO
+        if (freshUser.role === "ngo" && freshUser.location?.coordinates) {
+             setSelectedLocation({
+                lat: freshUser.location.coordinates[1],
+                lng: freshUser.location.coordinates[0],
+            });
+        }
+        
+      } catch (err) {
+        console.error("Failed to fetch fresh profile", err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // Update formData when user state changes (backup)
+  useEffect(() => {
+      if(user) {
+        setFormData(prev => ({
+            ...prev,
+            name: user.name || "",
+            owner_name: user.owner_name || "",
+            phone: user.phone || "",
+            email: user.email || "",
+        }));
+      }
+  }, [user]);
+
   const handleInputChange = (e) => {
+    if (user?.role === "ngo" && 
+       (e.target.name === "name" || e.target.name === "owner_name" || e.target.name === "phone")) {
+        return; // Prevent typing if disabled (backup safety)
+    }
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+    // Use the shared utility
+    const processed = await processImages(files);
+    setNgoFiles(processed);
+  };
+  
+    const handleDisabledClick = () => {
+    if (user?.role === "ngo") {
+        toast.info("Please contact Admin to update organization details.");
+    }
+  };
+
+  const handleMapSelect = (latlng) => {
+    setSelectedLocation({ lat: latlng.lat, lng: latlng.lng });
   };
 
   const handleSubmit = async (e) => {
@@ -41,13 +126,39 @@ const UserProfile = () => {
     setLoading(true);
 
     try {
-      const response = await api.put("/auth/profile", formData);
+      let apiData = formData;
+      let headers = {};
+
+      // If NGO with Files or Location, use FormData
+      if (user?.role === "ngo") {
+        const payload = new FormData();
+        payload.append("name", formData.name);
+        payload.append("phone", formData.phone);
+        payload.append("email", formData.email);
+
+        if (selectedLocation) {
+          payload.append("latitude", selectedLocation.lat);
+          payload.append("longitude", selectedLocation.lng);
+        }
+
+        if (ngoFiles.length > 0) {
+          ngoFiles.forEach((file) => {
+            payload.append("documents", file);
+          });
+        }
+        apiData = payload;
+        headers = { "Content-Type": "multipart/form-data" };
+      }
+
+      const response = await api.put("/auth/profile", apiData, { headers });
       const updatedUser = response.data.data;
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
+      setNgoFiles([]); // Clear files after upload
       toast.success("Profile updated successfully!");
     } catch (error) {
+      console.error(error);
       toast.error("Failed to update profile");
     } finally {
       setLoading(false);
@@ -147,24 +258,43 @@ const UserProfile = () => {
           {/* Profile Form */}
           <div className="bg-surface rounded-lg shadow-md p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Name Field */}
-              <div>
+              {/* Name Field (Organization Name for NGO) */}
+              <div onClick={user?.role === "ngo" ? handleDisabledClick : undefined}>
                 <label className="block text-sm font-medium text-text-primary mb-2">
                   <HiUser className="inline w-4 h-4 mr-2" />
-                  Full Name
+                  {user?.role === "ngo" ? "Organization Name" : "Full Name"}
                 </label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={user?.role === "ngo"}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${user?.role === "ngo" ? "bg-gray-100 cursor-not-allowed opacity-70" : ""}`}
                   required
                 />
               </div>
 
+              {/* Owner Name Field (NGO Only) */}
+              {user?.role === "ngo" && (
+                  <div onClick={handleDisabledClick}>
+                    <label className="block text-sm font-medium text-text-primary mb-2">
+                      <HiUser className="inline w-4 h-4 mr-2" />
+                      Owner / Representative Name
+                    </label>
+                    <input
+                      type="text"
+                      name="owner_name"
+                      value={formData.owner_name}
+                      onChange={handleInputChange}
+                      disabled={true}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed opacity-70"
+                    />
+                  </div>
+              )}
+
               {/* Phone Field */}
-              <div>
+              <div onClick={user?.role === "ngo" ? handleDisabledClick : undefined}>
                 <label className="block text-sm font-medium text-text-secondary mb-2">
                   <HiPhone className="inline w-4 h-4 mr-2" />
                   Phone Number
@@ -174,7 +304,8 @@ const UserProfile = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg"
+                  disabled={user?.role === "ngo"}
+                  className={`w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg ${user?.role === "ngo" ? "bg-gray-100 cursor-not-allowed opacity-70" : ""}`}
                 />
               </div>
 
@@ -225,6 +356,87 @@ const UserProfile = () => {
                   </div>
                 )}
               </div>
+
+              {/* NGO SPECIFIC FIELDS */}
+              {user?.role === "ngo" && (
+                <div className="space-y-6 pt-4 border-t border-border">
+                  <h3 className="font-bold text-text-primary">
+                    NGO Details update
+                  </h3>
+
+                  {/* Location Selector */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                      Headquarters Location
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowMapModal(true)}
+                      className="w-full border border-gray-300 rounded-lg p-3 flex items-center gap-3 text-text-secondary hover:bg-gray-50 transition"
+                    >
+                      <HiLocationMarker className="w-5 h-5 text-primary-500" />
+                      {selectedLocation
+                        ? `Update Location (${selectedLocation.lat.toFixed(
+                            4
+                          )}, ${selectedLocation.lng.toFixed(4)})`
+                        : "Set HQ Location on Map"}
+                    </button>
+                    {selectedLocation && (
+                       <p className="text-xs text-success-600 mt-1">Location set. Creating a new pin will update coordinates.</p>
+                    )}
+                  </div>
+
+                  {/* Document Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                       Supporting Documents (PDFs, Certs)
+                    </label>
+                    <div className="border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center">
+                        <input 
+                           type="file"
+                           multiple
+                           onChange={handleFileChange}
+                           className="hidden"
+                           id="ngo-docs"
+                        />
+                        <label htmlFor="ngo-docs" className="cursor-pointer flex flex-col items-center">
+                            <HiUpload className="w-8 h-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-text-primary font-medium">Click to Upload Documents</span>
+                            <span className="text-xs text-text-muted mt-1">Max 3 files</span>
+                        </label>
+                    </div>
+                    {ngoFiles.length > 0 && (
+                        <ul className="mt-2 text-sm text-text-secondary">
+                            {ngoFiles.map((f, i) => <li key={i}>📄 {f.name}</li>)}
+                        </ul>
+                    )}
+                    {user?.verification_docs?.length > 0 && (
+                        <div className="mt-4 p-4 bg-background rounded-lg border border-border">
+                            <p className="text-sm font-bold text-text-primary mb-2 flex items-center gap-2">
+                               
+                                Verifiying Documents
+                            </p>
+                            <ul className="space-y-2">
+                                {user.verification_docs.map((doc, i) => (
+                                    <li key={i}>
+                                        <a 
+                                            href={doc} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm transition-colors p-2 hover:bg-surface rounded-md border border-transparent hover:border-border"
+                                        >
+                                            <span className="bg-primary-100 p-1 rounded text-primary-600">📄</span>
+                                            View Document {i+1}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
 
               {/* Submit Button */}
               <button
@@ -286,6 +498,53 @@ const UserProfile = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Map Selection Modal */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
+              <button 
+                onClick={() => setShowMapModal(false)}
+                className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+              >
+                <HiX className="w-6 h-6" />
+              </button>
+              
+              <div className="flex-1 relative rounded-t-xl overflow-hidden">
+                <MapContainer 
+                  center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : [28.61, 77.2]}
+                  enableSearch={true}
+                  enableLocate={true}
+                  onMapClick={handleMapSelect}
+                >
+                  {selectedLocation && <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
+                    <Popup>Selected Location</Popup>
+                  </Marker>}
+                </MapContainer>
+              </div>
+              
+              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
+                 <button 
+                   onClick={() => setShowMapModal(false)}
+                   className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                   type="button"
+                 >
+                   Cancel
+                 </button>
+                 <button 
+                   onClick={() => {
+                       setShowMapModal(false);
+                       toast.info("Location staged for update. Click 'Update Profile' to save.");
+                   }}
+                   disabled={!selectedLocation}
+                   className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
+                   type="button"
+                 >
+                   Confirm Location
+                 </button>
+              </div>
+           </div>
         </div>
       )}
     </>

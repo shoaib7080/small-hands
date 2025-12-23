@@ -48,4 +48,12 @@ router.patch(
 
 router.get("/my-reports", protect, reportController.getMyReports);
 
+// Add this route to reportRoutes.js
+router.get(
+  "/recent-resolved",
+  protect,
+  restrictTo("ngo"),
+  reportController.getRecentResolvedCases
+);
+
 export default router;

@@ -47,7 +47,7 @@ const AdminDashboard = () => {
   if (!stats) return null;
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="space-y-6">
       {/* 1. Main Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard

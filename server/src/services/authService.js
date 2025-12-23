@@ -247,27 +247,54 @@ export const loginUser = async (identifier, password) => {
 };
 
 export const updateUserProfile = async (userId, updateData) => {
-  const { name, email, phone } = updateData;
+  const { name, email, phone, latitude, longitude, documents } = updateData;
 
   // Find user in all collections
   let user = await Reporter.findById(userId);
+  let role = "reporter";
+
   if (!user) {
     user = await NGO.findById(userId);
+    if (user) role = "ngo";
   }
   if (!user) {
     user = await Admin.findById(userId);
+    if (user) role = "admin";
   }
 
   if (!user) {
     throw new Error("User not found");
   }
 
-  // Update fields
+  // Update Standard Fields
   if (name) user.name = name;
   if (phone) user.phone = phone;
   if (email && email !== user.email) {
     user.email = email;
-    user.isEmailVerified = false; // Reset verification status when email changes
+    user.isEmailVerified = false; // Reset verification status
+  }
+
+  // NGO Specific Updates
+  if (role === "ngo") {
+    // 1. Update Location
+    if (latitude && longitude) {
+      user.location = {
+        type: "Point",
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+      };
+    }
+    
+    // 2. Add Documents (Append to existing)
+    if (documents && documents.length > 0) {
+      // Initialize array if undefined
+      if (!user.verification_docs) user.verification_docs = [];
+      user.verification_docs.push(...documents);
+      
+      // Optional: Reset verification status if they are updating docs
+      if (user.verification_status === "rejected") {
+         user.verification_status = "pending";
+      }
+    }
   }
 
   await user.save();

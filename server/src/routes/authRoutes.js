@@ -1,6 +1,7 @@
 import express from "express";
 import * as authController from "../controllers/authController.js";
 import { validate } from "../middlewares/validateMiddleware.js";
+import { upload } from "../config/cloudinary.js";
 import {
   reporterRegisterSchema,
   ngoRegisterSchema,
@@ -152,6 +153,7 @@ router.post("/login", validate(loginSchema), authController.login);
 router.put(
   "/profile",
   protect,
+  upload.array("documents", 3), // Backend now accepts files
   validate(updateProfileSchema),
   authController.updateProfile
 );
