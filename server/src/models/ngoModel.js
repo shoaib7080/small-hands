@@ -32,6 +32,7 @@ const ngoSchema = new mongoose.Schema(
     cases_claimed: { type: Number, default: 0 },
     cases_resolved: { type: Number, default: 0 },
     impact_score: { type: Number, default: 0 }, // For Leaderboard
+    fcmToken: { type: String },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
   },

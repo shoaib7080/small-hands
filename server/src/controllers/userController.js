@@ -27,10 +27,15 @@ export const updateFcmToken = async (req, res, next) => {
   try {
     const { fcmToken } = req.body;
 
-    // Find current user and save the token
-    await Reporter.findByIdAndUpdate(req.user.id, {
-      fcmToken: fcmToken,
-    });
+    const userId = req.user.id;
+    const role = req.user.role;
+
+    let Model;
+    if (role === "reporter") Model = Reporter;
+    else if (role === "ngo") Model = NGO;
+    else return res.status(400).json({ message: "Invalid role" });
+
+    await Model.findByIdAndUpdate(userId, { fcmToken });
 
     res.status(200).json({ status: "success", message: "Token updated" });
   } catch (err) {

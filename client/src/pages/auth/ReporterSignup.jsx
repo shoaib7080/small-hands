@@ -9,6 +9,7 @@ import { useState } from "react";
 import Input from "../../components/common/Input";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
 import { GoogleLogin } from "@react-oauth/google";
+import { requestForToken } from "../../firebase";
 import api from "../../services/api";
 
 // 1. Zod Schema (Frontend Only)
@@ -152,6 +153,9 @@ const ReporterSignup = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
+      // Sync FCM Token
+      requestForToken();
+
       toast.success("Registration completed! Welcome!");
       navigate("/dashboard/reporter");
     } catch (error) {
@@ -173,6 +177,9 @@ const ReporterSignup = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // Sync FCM Token
+      requestForToken();
       toast.success("Logged in with Google! 🚀");
       navigate("/dashboard/reporter");
     } catch (err) {

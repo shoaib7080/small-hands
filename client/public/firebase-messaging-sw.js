@@ -23,7 +23,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: "/vite.svg", // Or your logo path
+    icon: "/favicon.svg", // Or your logo path
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);

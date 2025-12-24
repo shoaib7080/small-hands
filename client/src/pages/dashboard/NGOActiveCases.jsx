@@ -131,7 +131,11 @@ const NGOActiveCases = () => {
       const { data } = await api.get(
         `/reports/nearby?lat=${lat}&lng=${lng}&radius=10000`
       ); // 10km radius
-      setReports(data.data);
+      // Sort in frontend if needed (Newest First)
+      const sorted = data.data.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setReports(sorted);
     } catch (err) {
       toast.error("Failed to load map data");
     } finally {
@@ -156,7 +160,10 @@ const NGOActiveCases = () => {
         }
 
         const { data } = await api.get(endpoint);
-        setReports(data.data);
+        const sorted = data.data.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setReports(sorted);
       } catch (err) {
         toast.error("Failed to fetch cases");
       } finally {
@@ -230,6 +237,11 @@ const NGOActiveCases = () => {
     ]);
     setMobileView("map");
     setViewingReport(null);
+  };
+
+  const openGoogleMaps = (lat, lng) => {
+    const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    window.open(url, "_blank");
   };
 
   const displayedReports = reports;
@@ -391,11 +403,16 @@ const NGOActiveCases = () => {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-text-muted">
-                    {new Date(report.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <span className="text-xs text-text-muted flex flex-col items-end">
+                    <span>
+                      {new Date(report.createdAt).toLocaleDateString()}
+                    </span>
+                    <span>
+                      {new Date(report.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </span>
                 </div>
                 <p className="text-sm text-text-secondary mt-1 line-clamp-2">
@@ -523,13 +540,32 @@ const NGOActiveCases = () => {
                     {new Date(viewingReport.createdAt).toLocaleString()}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleLocate(viewingReport)}
-                  className="flex flex-col items-center justify-center text-primary-600 hover:bg-primary-50 p-2 rounded transition"
-                >
-                  <HiLocationMarker className="w-6 h-6" />
-                  <span className="text-xs font-bold">Locate</span>
-                </button>
+                <div className="flex flex-col gap-2 items-end">
+                  <button
+                    onClick={() =>
+                      openGoogleMaps(
+                        viewingReport.location.coordinates[1],
+                        viewingReport.location.coordinates[0]
+                      )
+                    }
+                    className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-full text-xs font-bold text-primary-600 transition-colors"
+                    title="Open in Google Maps"
+                  >
+                    <span className="text-xs font-bold">
+                      Open in Google Maps
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => handleLocate(viewingReport)}
+                    className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-full text-xs font-bold text-primary-600 transition-colors"
+                    title="Locate on Dashboard Map"
+                  >
+                    <span className="text-xs font-bold">
+                      Locate on Dashboard
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <div className="bg-background p-4 rounded-lg mb-4 border border-border">

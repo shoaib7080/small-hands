@@ -6,6 +6,7 @@ import ReporterSignup from "./pages/auth/ReporterSignup";
 import NGOSignup from "./pages/auth/NGOSignup";
 import ReporterDashboard from "./pages/dashboard/ReporterDashboard";
 import ReporterMap from "./pages/dashboard/ReporterMap";
+import ReporterHistory from "./pages/dashboard/ReporterHistory";
 import NGODashboard from "./pages/dashboard/NGODashboard";
 import NGOActiveCases from "./pages/dashboard/NGOActiveCases";
 import Navbar from "./components/common/Navbar";
@@ -30,7 +31,7 @@ function App() {
     requestForToken();
 
     // 2. Listen for messages (Foreground)
-    onMessageListener().then((payload) => {
+    onMessageListener((payload) => {
       toast.info(payload.notification.title + ": " + payload.notification.body);
     });
   }, []);
@@ -84,6 +85,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["reporter"]} />}>
           <Route path="/dashboard/reporter" element={<ReporterDashboard />} />
           <Route path="/dashboard/reporter/create" element={<ReporterMap />} />
+          <Route path="/dashboard/reporter/history" element={<ReporterHistory />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["ngo"]} />}>

@@ -13,6 +13,7 @@ import api from "../../services/api";
 import Input from "../../components/common/Input";
 import MapContainer from "../../components/map/MapContainer";
 import "leaflet/dist/leaflet.css";
+import { requestForToken } from "../../firebase";
 
 // 1. Zod Schema
 const ngoSchema = z.object({
@@ -66,6 +67,9 @@ const NGOSignup = () => {
       const { token, user } = response.data.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
+
+      // Sync FCM Token
+      requestForToken();
 
       toast.success("NGO Registered Successfully!");
       navigate("/dashboard/ngo");

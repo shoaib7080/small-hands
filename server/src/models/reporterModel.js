@@ -31,6 +31,7 @@ const reporterSchema = new mongoose.Schema(
       type: { type: String, default: "Point" },
       coordinates: [Number],
     },
+    fcmToken: { type: String },
     emailVerificationToken: String,
     emailVerificationExpires: Date,
   },

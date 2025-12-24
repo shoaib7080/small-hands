@@ -6,6 +6,7 @@ import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
 import StatCard from "../../components/dashboard/StatCard";
 import ReportModal from "../../components/dashboard/ReportModal";
+import RecentSuccessStories from "../../components/dashboard/RecentSuccessStories";
 
 
 
@@ -104,60 +105,18 @@ const ReporterDashboard = () => {
         />
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Success Stories */}
       <div className="bg-surface rounded-xl shadow-sm p-6 border border-border">
-        <h3 className="text-lg font-bold text-text-primary mb-4">
-          Your Recent Reports
-        </h3>
-
-        {myReports.length === 0 ? (
-          <div className="text-center py-10 text-text-muted">
-            <HiDocumentText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>You haven't submitted any reports yet.</p>
-            <p className="text-sm">Spot a need? Click the button above!</p>
+          <div className="flex justify-between items-center mb-4">
+             <h3 className="text-lg font-bold text-text-primary">
+              Community Impact
+            </h3>
+            <Link to="/dashboard/reporter/history" className="text-sm text-primary-600 font-bold hover:underline">
+                View My Reports
+            </Link>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {myReports.map((report) => (
-              <button
-                key={report._id}
-                onClick={() => handleReportClick(report)}
-                className="p-4 rounded-lg border border-border hover:bg-background cursor-pointer transition-colors"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-text-primary">
-                        {report.type}
-                      </h4>
-                      <span className="text-xs text-text-muted capitalize">
-                        {report.severity}
-                      </span>
-                    </div>
-                    <p className="text-sm text-text-secondary line-clamp-2">
-                      {report.description}
-                    </p>
-
-                    <p className="text-xs text-text-muted mt-1">
-                      {new Date(report.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      report.status === "Resolved"
-                        ? "bg-success-100 text-success-700"
-                        : report.status === "Claimed"
-                        ? "bg-primary-100 text-primary-700"
-                        : "bg-warning-100 text-warning-700"
-                    }`}
-                  >
-                    {report.status}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+        
+        <RecentSuccessStories />
       </div>
 
       <ReportModal

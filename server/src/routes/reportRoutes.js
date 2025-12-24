@@ -52,7 +52,6 @@ router.get("/my-reports", protect, reportController.getMyReports);
 router.get(
   "/recent-resolved",
   protect,
-  restrictTo("ngo"),
   reportController.getRecentResolvedCases
 );
 

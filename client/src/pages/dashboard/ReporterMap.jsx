@@ -37,6 +37,7 @@ const MapClickParams = ({ setCoords }) => {
 
 const ReporterHome = () => {
   const [coords, setCoords] = useState(null); // [lat, lng]
+  const [mapCenter, setMapCenter] = useState([28.61, 77.2]); // Separate state for view
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [myReports, setMyReports] = useState([]);
@@ -52,7 +53,21 @@ const ReporterHome = () => {
     const fetchReports = async () => {
       try {
         const response = await api.get("/reports/my-reports");
-        setMyReports(response.data.data);
+        const reports = response.data.data;
+        setMyReports(reports);
+
+        // Center map on last report if available and no URL params
+        const lat = searchParams.get("lat");
+        const lng = searchParams.get("lng");
+        if (!lat && !lng && reports.length > 0) {
+            const lastReport = reports[0]; // Assumes backend sorts by desc
+            if (lastReport.location?.coordinates) {
+                setMapCenter([
+                    lastReport.location.coordinates[1],
+                    lastReport.location.coordinates[0]
+                ]);
+            }
+        }
       } catch (err) {
         console.error("Failed to load reports");
       }
@@ -64,7 +79,9 @@ const ReporterHome = () => {
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
     if (lat && lng) {
-      setCoords([parseFloat(lat), parseFloat(lng)]);
+      const newCoords = [parseFloat(lat), parseFloat(lng)];
+      setCoords(newCoords);
+      setMapCenter(newCoords);
     }
   }, [searchParams]);
 
@@ -125,10 +142,13 @@ const ReporterHome = () => {
       </div>
       {/* The Map */}
       <MapContainer
-        center={coords || [28.61, 77.2]}
+        center={mapCenter}
         zoom={13}
         enableSearch={true}
-        onMapClick={(latlng) => setCoords([latlng.lat, latlng.lng])}
+        onMapClick={(latlng) => {
+          setCoords([latlng.lat, latlng.lng]);
+          setMapCenter([latlng.lat, latlng.lng]);
+        }}
       >
         {/* Show user's reports */}
         {myReports.map((report) => (

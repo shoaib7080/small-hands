@@ -9,6 +9,7 @@ import api from "../../services/api";
 import Input from "../../components/common/Input";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
 import { GoogleLogin } from "@react-oauth/google";
+import { requestForToken } from "../../firebase";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Email or Phone is required"),
@@ -31,6 +32,10 @@ const Login = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // Sync FCM Token
+      requestForToken();
+      
       toast.success("Logged in with Google! 🚀");
 
       // Redirect based on role
@@ -60,6 +65,9 @@ const Login = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
+
+      // Sync FCM Token
+      requestForToken();
 
       toast.success(`Welcome back, ${response.data.data.user.name}!`);
 

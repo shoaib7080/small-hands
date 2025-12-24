@@ -41,9 +41,11 @@ export const requestForToken = async () => {
 };
 
 // Function to listen for messages when app is OPEN
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
+// Function to listen for messages when app is OPEN
+export const onMessageListener = (callback) => {
+  return onMessage(messaging, (payload) => {
+    console.log("[Foreground] Message received:", payload);
+    callback(payload);
   });
+};
+

@@ -2,6 +2,7 @@ import Report from "../models/reportModel.js";
 import mongoose from "mongoose";
 import Reporter from "../models/reporterModel.js";
 import NGO from "../models/ngoModel.js";
+import admin from "../utils/firebaseAdmin.js";
 
 // 1. Create a Report
 export const createReport = async (req, res, next) => {
@@ -23,6 +24,53 @@ export const createReport = async (req, res, next) => {
       reporter_id: req.user.id, // Comes from authMiddleware
       location: { type: "Point", coordinates: [longitude, latitude] },
     });
+
+    // --- NOTIFICATION LOGIC ---
+    try {
+      // Find NGOs within 10km (10000 meters)
+      const nearbyNGOs = await NGO.find({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude],
+            },
+            $maxDistance: 10000,
+          },
+        },
+        fcmToken: { $exists: true, $ne: null }, // Only those with tokens
+      }).select("fcmToken");
+
+      console.log(`[DEBUG] New Report at [${longitude}, ${latitude}]`);
+      console.log(`[DEBUG] Found ${nearbyNGOs.length} NGOs nearby`);
+
+      if (nearbyNGOs.length > 0) {
+        const tokens = nearbyNGOs.map((ngo) => ngo.fcmToken);
+        console.log(`[DEBUG] Sending to tokens:`, tokens);
+        
+        // Firebase Multicast Message
+        const message = {
+          notification: {
+            title: "New Alert in Your Area!",
+            body: `A new ${severity} severity report requires attention.`,
+          },
+          data: {
+            reportId: report._id.toString(),
+            type: "new_report",
+          },
+          tokens: tokens,
+        };
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log("Notifications sent:", response.successCount);
+        console.log("Failures:", response.failureCount);
+        if (response.failureCount > 0) {
+             console.log("Failed tokens:", response.responses.filter(r => !r.success));
+        }
+      }
+    } catch (notifyErr) {
+      console.error("Failed to send notifications:", notifyErr);
+      // Don't fail the request if notification fails
+    }
 
     await Reporter.findByIdAndUpdate(req.user.id, {
       $inc: { reports_posted: 1, karma_points: 5 },
@@ -103,6 +151,34 @@ export const claimReport = async (req, res, next) => {
     report.status = "Claimed";
     report.claimed_by = req.user.id;
     await report.save();
+
+    // --- START NOTIFICATION LOGIC ---
+    try {
+      // Find the reporter to get their token
+      const reporter = await Reporter.findById(report.reporter_id).select(
+        "fcmToken"
+      );
+      if (reporter && reporter.fcmToken) {
+        const message = {
+          notification: {
+            title: "Help is on the way!",
+            body: `Your report has been claimed by ${
+              req.user.name || "an NGO"
+            }.`,
+          },
+          data: {
+            reportId: report._id.toString(),
+            type: "report_claimed",
+          },
+          token: reporter.fcmToken,
+        };
+        await admin.messaging().send(message);
+        console.log("Reporter notified");
+      }
+    } catch (notifyErr) {
+      console.error("Notification error:", notifyErr);
+    }
+    // --- END NOTIFICATION LOGIC ---
 
     await NGO.findByIdAndUpdate(req.user.id, {
       $inc: { cases_claimed: 1 },
