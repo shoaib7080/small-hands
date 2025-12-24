@@ -1,18 +1,12 @@
 import { useState, useEffect } from "react";
-import {
-  TileLayer,
-  Marker,
-  Popup,
-  useMapEvents,
-  useMap,
-} from "react-leaflet";
+import { TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
 import MapContainer from "../../components/map/MapContainer";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { HiArrowLeft, HiPlus, HiLocationMarker } from "react-icons/hi";
 import api from "../../services/api";
 import "leaflet/dist/leaflet.css";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { processImages } from "../../utils/imageUtils";
 
 // 1. Component to Handle Map Clicks & User Location
@@ -34,10 +28,9 @@ const MapClickParams = ({ setCoords }) => {
   return null;
 };
 
-
 const ReporterHome = () => {
   const [coords, setCoords] = useState(null); // [lat, lng]
-  const [mapCenter, setMapCenter] = useState([28.61, 77.2]); // Separate state for view
+  const [mapCenter, setMapCenter] = useState([26.7606, 83.3732]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [myReports, setMyReports] = useState([]);
@@ -45,6 +38,8 @@ const ReporterHome = () => {
   const [processedImages, setProcessedImages] = useState([]);
   // const [formData, setFormData] = useState({ image: null });
   const [imagePreview, setImagePreview] = useState(null);
+
+  const navigate = useNavigate();
 
   const { register, handleSubmit, reset } = useForm();
 
@@ -60,13 +55,13 @@ const ReporterHome = () => {
         const lat = searchParams.get("lat");
         const lng = searchParams.get("lng");
         if (!lat && !lng && reports.length > 0) {
-            const lastReport = reports[0]; // Assumes backend sorts by desc
-            if (lastReport.location?.coordinates) {
-                setMapCenter([
-                    lastReport.location.coordinates[1],
-                    lastReport.location.coordinates[0]
-                ]);
-            }
+          const lastReport = reports[0]; // Assumes backend sorts by desc
+          if (lastReport.location?.coordinates) {
+            setMapCenter([
+              lastReport.location.coordinates[1],
+              lastReport.location.coordinates[0],
+            ]);
+          }
         }
       } catch (err) {
         console.error("Failed to load reports");
@@ -87,7 +82,7 @@ const ReporterHome = () => {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-    
+
     // Show loading state if you have one
     const processed = await processImages(files);
     setProcessedImages(processed);
@@ -123,6 +118,7 @@ const ReporterHome = () => {
       reset();
       setCoords(null);
       setProcessedImages([]);
+      navigate("/dashboard/reporter");
     } catch (err) {
       toast.error("Failed to post report.");
     } finally {
@@ -132,7 +128,7 @@ const ReporterHome = () => {
 
   return (
     <div className="h-screen w-full relative">
-      <div className="absolute top-5 right-5 z-[1000]">
+      <div className="absolute top-3 right-5 z-[1000]">
         <Link
           to="/dashboard/reporter"
           className="bg-surface text-text-primary w-10 h-10 rounded-full shadow-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
@@ -188,7 +184,7 @@ const ReporterHome = () => {
       </MapContainer>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-4 right-4 md:bottom-10 md:right-10 z-[1000] max-w-[calc(100vw-2rem)]">
+      <div className="fixed bottom-4 left-4 md:bottom-10 md:right-10 z-[1000] max-w-[calc(100vw-2rem)]">
         {coords && !showModal && (
           <button
             onClick={() => setShowModal(true)}
