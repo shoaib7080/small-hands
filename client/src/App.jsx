@@ -20,8 +20,21 @@ import AdminReports from "./pages/admin/AdminReports";
 import OTPVerification from "./pages/auth/OTPVerification";
 import UserProfile from "./pages/profile/UserProfile";
 import ResetPassword from "./pages/auth/ResetPassword";
+import { useEffect } from "react";
+import { requestForToken, onMessageListener } from "./firebase";
+import { toast } from "react-toastify";
 
 function App() {
+  useEffect(() => {
+    // 1. Ask Permission & Save Token
+    requestForToken();
+
+    // 2. Listen for messages (Foreground)
+    onMessageListener().then((payload) => {
+      toast.info(payload.notification.title + ": " + payload.notification.body);
+    });
+  }, []);
+
   return (
     <BrowserRouter>
       <ToastContainer

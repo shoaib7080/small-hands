@@ -422,6 +422,7 @@ const NGOActiveCases = () => {
           enableSearch={true}
           className="h-full w-full"
           key={mobileView}
+          ngoHQ={ngoLocation}
           // The shared component handles flyTo via 'center' prop automatically
           // If we need to force flyTo when user clicks 'Locate', we pass that state as center
           // So we update our state logic slightly: mapCenter overrides ngoLocation

@@ -45,13 +45,23 @@ const MapController = ({ center, onMapClick }) => {
 };
 
 // Internal Component for "Locate Me" Button
-const LocateButton = ({ onLocationFound }) => {
+const LocateButton = ({ onLocationFound, ngoHQ }) => {
   const map = useMap();
 
   const handleLocate = (e) => {
     e.preventDefault();
     e.stopPropagation();
 
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    // If user is NGO and HQ location is available, go to HQ
+    if (user.role === "ngo" && ngoHQ) {
+      toast.info("Zooming to HQ...");
+      map.flyTo(ngoHQ, 14, { animate: true });
+      return;
+    }
+
+    // Otherwise, get current location
     if (!navigator.geolocation) {
       return toast.error("Geolocation is not supported");
     }
@@ -62,7 +72,7 @@ const LocateButton = ({ onLocationFound }) => {
       (position) => {
         const { latitude, longitude } = position.coords;
         map.flyTo([latitude, longitude], 14, { animate: true });
-        
+
         // Notify parent if needed (e.g. to set a pin)
         if (onLocationFound) {
           onLocationFound({ lat: latitude, lng: longitude });
@@ -77,11 +87,11 @@ const LocateButton = ({ onLocationFound }) => {
   return (
     <button
       onClick={handleLocate}
-      className="absolute bottom-5 right-5 z-[1000] bg-white text-gray-700 p-2 rounded-full shadow-lg hover:bg-gray-50 border border-gray-200"
+      className="absolute bottom-20 right-5 z-[1000] bg-white text-gray-700 p-2 rounded-full shadow-lg hover:bg-gray-50 border border-gray-200"
       title="Locate Me"
       type="button"
     >
-      <HiLocationMarker className="w-6 h-6 text-blue-600" />
+      <HiLocationMarker className="w-6 h-6 text-primary-600" />
     </button>
   );
 };
@@ -94,6 +104,7 @@ const MapContainer = ({
   onMapClick,
   children,
   className = "h-full w-full",
+  ngoHQ = null,
 }) => {
   return (
     <div className={`relative ${className} z-0`}>
@@ -104,15 +115,17 @@ const MapContainer = ({
         zoomControl={false} // We can add custom controls if needed, or leave default
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        
+
         {/* Search Input Overlay - Must be inside MapContainer to use useMap() */}
         {enableSearch && <MapSearch />}
-        
+
         {/* Locate Me Button */}
-        {enableLocate && <LocateButton onLocationFound={onMapClick} />}
-        
+        {enableLocate && (
+          <LocateButton onLocationFound={onMapClick} ngoHQ={ngoHQ} />
+        )}
+
         <MapController center={center} onMapClick={onMapClick} />
-        
+
         {children}
       </LeafletMapContainer>
     </div>

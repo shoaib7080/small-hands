@@ -22,3 +22,18 @@ export const getMe = async (req, res, next) => {
     next(err);
   }
 };
+
+export const updateFcmToken = async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body;
+
+    // Find current user and save the token
+    await Reporter.findByIdAndUpdate(req.user.id, {
+      fcmToken: fcmToken,
+    });
+
+    res.status(200).json({ status: "success", message: "Token updated" });
+  } catch (err) {
+    next(err);
+  }
+};
