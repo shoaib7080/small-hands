@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+dev-dist/
+dev-dist/ssr/
+dev-dist/*
+dev-dist/sw.js

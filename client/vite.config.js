@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+
     VitePWA({
       registerType: "autoUpdate", // Auto-update the app when you deploy changes
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
@@ -19,13 +20,16 @@ export default defineConfig({
 
       workbox: {
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // Increase limit to 4MB
-        navigateFallbackDenylist: [/^\/api\//, /^https:\/\/.*\.openstreetmap\.org/],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^https:\/\/.*\.openstreetmap\.org/,
+        ],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.openstreetmap\.org\/.*/,
-            handler: 'NetworkOnly', // Don't cache tiles
-          }
-        ]
+            handler: "NetworkOnly", // Don't cache tiles
+          },
+        ],
       },
       manifest: {
         name: "Small Hands Support",
