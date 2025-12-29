@@ -14,15 +14,15 @@ import { set } from "lodash";
 
 // Internal Controller to handle flyTo and clicks
 // We combine the functionality here to keep the main component clean
-const MapController = ({ center, onMapClick }) => {
+const MapController = ({ center, onMapClick, zoomLevel }) => {
   const map = useMap();
 
   // Handle FlyTo changes
   useEffect(() => {
     if (center) {
-      map.flyTo(center, map.getZoom(), { animate: true });
+      map.flyTo(center, zoomLevel || map.getZoom(), { animate: true });
     }
-  }, [center, map]);
+  }, [center, map, zoomLevel]);
 
   // Handle Resize Issues (Grey tiles)
   useEffect(() => {
@@ -120,6 +120,7 @@ const MapContainer = ({
   enableSearch = false,
   enableLocate = true,
   onMapClick,
+  onLocationFound,
   children,
   className = "h-full w-full",
   ngoHQ = null,
@@ -140,6 +141,7 @@ const MapContainer = ({
       if (onLocationFound) {
         onLocationFound({ lat: ngoHQ[0], lng: ngoHQ[1] });
       }
+      setIsLocating(false);
       return;
     }
 
@@ -169,6 +171,7 @@ const MapContainer = ({
         setIsLocating(false);
       },
       (error) => {
+        console.log("Location error:", error);
         let errorMessage = "Unable to retrieve location";
 
         switch (error.code) {
@@ -206,6 +209,7 @@ const MapContainer = ({
 
         <MapController
           center={userLocation || center}
+          zoomLevel={userLocation ? 18 : undefined}
           onMapClick={onMapClick}
         />
 

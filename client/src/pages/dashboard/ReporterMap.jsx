@@ -226,7 +226,7 @@ const ReporterHome = () => {
         )}
 
         {!coords && (
-          <div className="bg-surface p-3 rounded-lg shadow-lg border border-border flex items-center gap-2 text-text-secondary font-medium text-sm">
+          <div className="bg-surface shadow-lg border border-border text-text-secondary font-medium text-sm py-3 px-6 rounded-full flex items-center gap-2 w-auto md:w-fit">
             <HiLocationMarker className="w-5 h-5 text-primary-500" />
             Tap map to pin location
           </div>
