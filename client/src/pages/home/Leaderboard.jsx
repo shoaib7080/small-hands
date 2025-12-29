@@ -3,6 +3,7 @@ import { HiStar, HiUsers, HiOfficeBuilding } from "react-icons/hi";
 import { HiOutlineTrophy } from "react-icons/hi2";
 import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
+import { Link } from "react-router-dom";
 
 const Leaderboard = () => {
   const [data, setData] = useState({ reporters: [], ngos: [] });
@@ -53,7 +54,7 @@ const Leaderboard = () => {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Reporters Column */}
-        <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
+        {/* <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="bg-primary-500 p-4 md:p-6 text-white">
             <div className="flex items-center gap-3 justify-center">
               <HiUsers className="w-6 h-6" />
@@ -113,7 +114,7 @@ const Leaderboard = () => {
               ))
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* NGOs Column */}
         <div className="bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
@@ -144,9 +145,15 @@ const Leaderboard = () => {
                       <RankBadge rank={index} />
                     </div>
                     <div>
-                      <p className="font-medium text-text-primary text-sm md:text-base">
+                      {/* <p className="font-medium text-text-primary text-sm md:text-base">
+                        
+                      </p> */}
+                      <Link
+                        to={`/ngo/${ngo._id}`}
+                        className="text-primary-600 hover:underline font-medium"
+                      >
                         {ngo.name}
-                      </p>
+                      </Link>
                       <span className="text-xs bg-success-100 text-success-700 px-2 py-0.5 rounded-full capitalize">
                         {ngo.verification_status}
                       </span>

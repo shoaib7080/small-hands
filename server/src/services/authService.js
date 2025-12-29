@@ -247,7 +247,17 @@ export const loginUser = async (identifier, password) => {
 };
 
 export const updateUserProfile = async (userId, updateData) => {
-  const { name, email, phone, latitude, longitude, documents } = updateData;
+  const {
+    name,
+    email,
+    phone,
+    latitude,
+    longitude,
+    documents,
+    website,
+    donation_link,
+    service_radius_km,
+  } = updateData;
 
   // Find user in all collections
   let user = await Reporter.findById(userId);
@@ -276,23 +286,26 @@ export const updateUserProfile = async (userId, updateData) => {
 
   // NGO Specific Updates
   if (role === "ngo") {
-    // 1. Update Location
     if (latitude && longitude) {
       user.location = {
         type: "Point",
         coordinates: [parseFloat(longitude), parseFloat(latitude)],
       };
     }
-    
-    // 2. Add Documents (Append to existing)
+
+    if (website !== undefined) user.website = website;
+    if (donation_link !== undefined) user.donation_link = donation_link;
+    if (service_radius_km !== undefined)
+      user.service_radius_km = parseFloat(service_radius_km);
+
     if (documents && documents.length > 0) {
       // Initialize array if undefined
       if (!user.verification_docs) user.verification_docs = [];
       user.verification_docs.push(...documents);
-      
+
       // Optional: Reset verification status if they are updating docs
       if (user.verification_status === "rejected") {
-         user.verification_status = "pending";
+        user.verification_status = "pending";
       }
     }
   }

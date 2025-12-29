@@ -24,6 +24,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import { useEffect } from "react";
 import { requestForToken, onMessageListener } from "./firebase";
 import { toast } from "react-toastify";
+import NGOProfile from "./pages/profile/NGOProfile";
 
 function App() {
   useEffect(() => {
@@ -70,6 +71,7 @@ function App() {
         <Route path="/auth/verify-otp" element={<OTPVerification />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/ngo/:id" element={<NGOProfile />} />
 
         {/* PROTECTED ROUTES */}
         <Route
@@ -85,7 +87,10 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["reporter"]} />}>
           <Route path="/dashboard/reporter" element={<ReporterDashboard />} />
           <Route path="/dashboard/reporter/create" element={<ReporterMap />} />
-          <Route path="/dashboard/reporter/history" element={<ReporterHistory />} />
+          <Route
+            path="/dashboard/reporter/history"
+            element={<ReporterHistory />}
+          />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={["ngo"]} />}>

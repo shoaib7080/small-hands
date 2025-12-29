@@ -12,6 +12,8 @@ import {
   HiLocationMarker,
   HiUpload,
   HiX,
+  HiPlus,
+  HiMinus,
 } from "react-icons/hi";
 import { Marker, Popup } from "react-leaflet";
 import api from "../../services/api";
@@ -20,8 +22,8 @@ import MapContainer from "../../components/map/MapContainer";
 import "leaflet/dist/leaflet.css";
 import { processImages } from "../../utils/imageUtils";
 
-  const UserProfile = () => {
-   const [user, setUser] = useState(() => {
+const UserProfile = () => {
+  const [user, setUser] = useState(() => {
     const userData = localStorage.getItem("user");
     return userData ? JSON.parse(userData) : null;
   });
@@ -32,12 +34,14 @@ import { processImages } from "../../utils/imageUtils";
   const [sendingCode, setSendingCode] = useState(false);
   const navigate = useNavigate();
 
-  // ... (existing state)
   const [formData, setFormData] = useState({
     name: user?.name || "",
     owner_name: user?.owner_name || "",
     phone: user?.phone || "",
     email: user?.email || "",
+    website: user?.website || "",
+    donation_link: user?.donation_link || "",
+    service_radius_km: user?.service_radius_km || 10,
   });
 
   // NGO Specific State
@@ -52,27 +56,28 @@ import { processImages } from "../../utils/imageUtils";
       try {
         const { data } = await api.get("/auth/me");
         const freshUser = data.data;
-        
+
         // Update Local Storage & State
         localStorage.setItem("user", JSON.stringify(freshUser));
         setUser(freshUser);
 
         // Update Form Data
         setFormData({
-            name: freshUser.name || "",
-            owner_name: freshUser.owner_name || "", // Add owner name
-            phone: freshUser.phone || "",
-            email: freshUser.email || "",
+          name: freshUser.name || "",
+          owner_name: freshUser.owner_name || "", // Add owner name
+          phone: freshUser.phone || "",
+          email: freshUser.email || "",
+          website: freshUser.website || "",
+          donation_link: freshUser.donation_link || "",
+          service_radius_km: freshUser.service_radius_km || 10,
         });
-
         // Update Location if NGO
         if (freshUser.role === "ngo" && freshUser.location?.coordinates) {
-             setSelectedLocation({
-                lat: freshUser.location.coordinates[1],
-                lng: freshUser.location.coordinates[0],
-            });
+          setSelectedLocation({
+            lat: freshUser.location.coordinates[1],
+            lng: freshUser.location.coordinates[0],
+          });
         }
-        
       } catch (err) {
         console.error("Failed to fetch fresh profile", err);
       }
@@ -82,21 +87,28 @@ import { processImages } from "../../utils/imageUtils";
 
   // Update formData when user state changes (backup)
   useEffect(() => {
-      if(user) {
-        setFormData(prev => ({
-            ...prev,
-            name: user.name || "",
-            owner_name: user.owner_name || "",
-            phone: user.phone || "",
-            email: user.email || "",
-        }));
-      }
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: user.name || "",
+        owner_name: user.owner_name || "",
+        phone: user.phone || "",
+        email: user.email || "",
+        website: user.website || "",
+        donation_link: user.donation_link || "",
+        service_radius_km: user.service_radius_km || 10,
+      }));
+    }
   }, [user]);
 
   const handleInputChange = (e) => {
-    if (user?.role === "ngo" && 
-       (e.target.name === "name" || e.target.name === "owner_name" || e.target.name === "phone")) {
-        return; // Prevent typing if disabled (backup safety)
+    if (
+      user?.role === "ngo" &&
+      (e.target.name === "name" ||
+        e.target.name === "owner_name" ||
+        e.target.name === "phone")
+    ) {
+      return; // Prevent typing if disabled (backup safety)
     }
     setFormData({
       ...formData,
@@ -110,10 +122,10 @@ import { processImages } from "../../utils/imageUtils";
     const processed = await processImages(files);
     setNgoFiles(processed);
   };
-  
-    const handleDisabledClick = () => {
+
+  const handleDisabledClick = () => {
     if (user?.role === "ngo") {
-        toast.info("Please contact Admin to update organization details.");
+      toast.info("Please contact Admin to update organization details.");
     }
   };
 
@@ -125,6 +137,8 @@ import { processImages } from "../../utils/imageUtils";
     e.preventDefault();
     setLoading(true);
 
+    console.log("FormData before submit:", formData);
+
     try {
       let apiData = formData;
       let headers = {};
@@ -135,6 +149,16 @@ import { processImages } from "../../utils/imageUtils";
         payload.append("name", formData.name);
         payload.append("phone", formData.phone);
         payload.append("email", formData.email);
+
+        if (formData.website) payload.append("website", formData.website);
+        if (formData.donation_link)
+          payload.append("donation_link", formData.donation_link);
+        if (formData.service_radius_km)
+          payload.append("service_radius_km", formData.service_radius_km);
+
+        console.log("Website to submit:", formData.website);
+        console.log("Donation link to submit:", formData.donation_link);
+        console.log("Service radius to submit:", formData.service_radius_km);
 
         if (selectedLocation) {
           payload.append("latitude", selectedLocation.lat);
@@ -225,6 +249,16 @@ import { processImages } from "../../utils/imageUtils";
     return "/dashboard/reporter";
   };
 
+  const handleRadiusChange = (increment) => {
+    const currentRadius =
+      formData.service_radius_km || user?.service_radius_km || 10;
+    const newRadius = Math.max(10, currentRadius + increment);
+    setFormData({
+      ...formData,
+      service_radius_km: newRadius,
+    });
+  };
+
   return (
     <>
       <LoadingOverlay isVisible={loading} text="Processing..." />
@@ -259,7 +293,9 @@ import { processImages } from "../../utils/imageUtils";
           <div className="bg-surface rounded-lg shadow-md p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Name Field (Organization Name for NGO) */}
-              <div onClick={user?.role === "ngo" ? handleDisabledClick : undefined}>
+              <div
+                onClick={user?.role === "ngo" ? handleDisabledClick : undefined}
+              >
                 <label className="block text-sm font-medium text-text-primary mb-2">
                   <HiUser className="inline w-4 h-4 mr-2" />
                   {user?.role === "ngo" ? "Organization Name" : "Full Name"}
@@ -270,31 +306,37 @@ import { processImages } from "../../utils/imageUtils";
                   value={formData.name}
                   onChange={handleInputChange}
                   disabled={user?.role === "ngo"}
-                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${user?.role === "ngo" ? "bg-gray-100 cursor-not-allowed opacity-70" : ""}`}
+                  className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    user?.role === "ngo"
+                      ? "bg-gray-100 cursor-not-allowed opacity-70"
+                      : ""
+                  }`}
                   required
                 />
               </div>
 
               {/* Owner Name Field (NGO Only) */}
               {user?.role === "ngo" && (
-                  <div onClick={handleDisabledClick}>
-                    <label className="block text-sm font-medium text-text-primary mb-2">
-                      <HiUser className="inline w-4 h-4 mr-2" />
-                      Owner / Representative Name
-                    </label>
-                    <input
-                      type="text"
-                      name="owner_name"
-                      value={formData.owner_name}
-                      onChange={handleInputChange}
-                      disabled={true}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed opacity-70"
-                    />
-                  </div>
+                <div onClick={handleDisabledClick}>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    <HiUser className="inline w-4 h-4 mr-2" />
+                    Owner / Representative Name
+                  </label>
+                  <input
+                    type="text"
+                    name="owner_name"
+                    value={formData.owner_name}
+                    onChange={handleInputChange}
+                    disabled={true}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed opacity-70"
+                  />
+                </div>
               )}
 
               {/* Phone Field */}
-              <div onClick={user?.role === "ngo" ? handleDisabledClick : undefined}>
+              <div
+                onClick={user?.role === "ngo" ? handleDisabledClick : undefined}
+              >
                 <label className="block text-sm font-medium text-text-secondary mb-2">
                   <HiPhone className="inline w-4 h-4 mr-2" />
                   Phone Number
@@ -305,7 +347,11 @@ import { processImages } from "../../utils/imageUtils";
                   value={formData.phone}
                   onChange={handleInputChange}
                   disabled={user?.role === "ngo"}
-                  className={`w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg ${user?.role === "ngo" ? "bg-gray-100 cursor-not-allowed opacity-70" : ""}`}
+                  className={`w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg ${
+                    user?.role === "ngo"
+                      ? "bg-gray-100 cursor-not-allowed opacity-70"
+                      : ""
+                  }`}
                 />
               </div>
 
@@ -364,6 +410,78 @@ import { processImages } from "../../utils/imageUtils";
                     NGO Details update
                   </h3>
 
+                  {/* Website Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                      Website URL (Optional)
+                    </label>
+                    <input
+                      type="url"
+                      name="website"
+                      value={formData.website || ""}
+                      onChange={handleInputChange}
+                      placeholder="https://your-ngo-website.com"
+                      className="w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Donation Link Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                      Donation Link
+                    </label>
+                    <input
+                      type="text"
+                      name="donation_link"
+                      value={formData.donation_link || ""}
+                      onChange={handleInputChange}
+                      placeholder="Your UPI ID"
+                      className="w-full px-4 py-3 border border-border bg-background text-text-primary rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Service Radius Field */}
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-2">
+                      Service Radius (km)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleRadiusChange(-10)}
+                        disabled={
+                          (formData.service_radius_km ||
+                            user?.service_radius_km ||
+                            10) <= 10
+                        }
+                        className="w-10 h-10 bg-error-500 hover:bg-error-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center transition-colors"
+                      >
+                        <HiMinus className="w-5 h-5" />
+                      </button>
+                      <div className="flex-1 text-center">
+                        <div className="text-2xl font-bold text-text-primary">
+                          {formData.service_radius_km ||
+                            user?.service_radius_km ||
+                            10}{" "}
+                          km
+                        </div>
+                        <div className="text-xs text-text-muted">
+                          Coverage area radius
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRadiusChange(10)}
+                        className="w-10 h-10 bg-success-500 hover:bg-success-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg flex items-center justify-center transition-colors"
+                      >
+                        <HiPlus className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-text-muted mt-2 text-center">
+                      Minimum: 10km • Adjusts in 10km increments
+                    </p>
+                  </div>
+
                   {/* Location Selector */}
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">
@@ -382,61 +500,73 @@ import { processImages } from "../../utils/imageUtils";
                         : "Set HQ Location on Map"}
                     </button>
                     {selectedLocation && (
-                       <p className="text-xs text-success-600 mt-1">Location set. Creating a new pin will update coordinates.</p>
+                      <p className="text-xs text-success-600 mt-1">
+                        Location set. Creating a new pin will update
+                        coordinates.
+                      </p>
                     )}
                   </div>
 
                   {/* Document Upload */}
                   <div>
                     <label className="block text-sm font-medium text-text-secondary mb-2">
-                       Supporting Documents (PDFs, Certs)
+                      Supporting Documents (PDFs, Certs)
                     </label>
                     <div className="border border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center">
-                        <input 
-                           type="file"
-                           multiple
-                           onChange={handleFileChange}
-                           className="hidden"
-                           id="ngo-docs"
-                        />
-                        <label htmlFor="ngo-docs" className="cursor-pointer flex flex-col items-center">
-                            <HiUpload className="w-8 h-8 text-gray-400 mb-2" />
-                            <span className="text-sm text-text-primary font-medium">Click to Upload Documents</span>
-                            <span className="text-xs text-text-muted mt-1">Max 3 files</span>
-                        </label>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="ngo-docs"
+                      />
+                      <label
+                        htmlFor="ngo-docs"
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <HiUpload className="w-8 h-8 text-gray-400 mb-2" />
+                        <span className="text-sm text-text-primary font-medium">
+                          Click to Upload Documents
+                        </span>
+                        <span className="text-xs text-text-muted mt-1">
+                          Max 3 files
+                        </span>
+                      </label>
                     </div>
                     {ngoFiles.length > 0 && (
-                        <ul className="mt-2 text-sm text-text-secondary">
-                            {ngoFiles.map((f, i) => <li key={i}>📄 {f.name}</li>)}
-                        </ul>
+                      <ul className="mt-2 text-sm text-text-secondary">
+                        {ngoFiles.map((f, i) => (
+                          <li key={i}>📄 {f.name}</li>
+                        ))}
+                      </ul>
                     )}
                     {user?.verification_docs?.length > 0 && (
-                        <div className="mt-4 p-4 bg-background rounded-lg border border-border">
-                            <p className="text-sm font-bold text-text-primary mb-2 flex items-center gap-2">
-                               
-                                Verifiying Documents
-                            </p>
-                            <ul className="space-y-2">
-                                {user.verification_docs.map((doc, i) => (
-                                    <li key={i}>
-                                        <a 
-                                            href={doc} 
-                                            target="_blank" 
-                                            rel="noreferrer" 
-                                            className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm transition-colors p-2 hover:bg-surface rounded-md border border-transparent hover:border-border"
-                                        >
-                                            <span className="bg-primary-100 p-1 rounded text-primary-600">📄</span>
-                                            View Document {i+1}
-                                        </a>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                      <div className="mt-4 p-4 bg-background rounded-lg border border-border">
+                        <p className="text-sm font-bold text-text-primary mb-2 flex items-center gap-2">
+                          Verifiying Documents
+                        </p>
+                        <ul className="space-y-2">
+                          {user.verification_docs.map((doc, i) => (
+                            <li key={i}>
+                              <a
+                                href={doc}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm transition-colors p-2 hover:bg-surface rounded-md border border-transparent hover:border-border"
+                              >
+                                <span className="bg-primary-100 p-1 rounded text-primary-600">
+                                  📄
+                                </span>
+                                View Document {i + 1}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
                 </div>
               )}
-
 
               {/* Submit Button */}
               <button
@@ -503,48 +633,58 @@ import { processImages } from "../../utils/imageUtils";
       {/* Map Selection Modal */}
       {showMapModal && (
         <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
-              <button 
-                onClick={() => setShowMapModal(false)}
-                className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
+            <button
+              onClick={() => setShowMapModal(false)}
+              className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+            >
+              <HiX className="w-6 h-6" />
+            </button>
+
+            <div className="flex-1 relative rounded-t-xl overflow-hidden">
+              <MapContainer
+                center={
+                  selectedLocation
+                    ? [selectedLocation.lat, selectedLocation.lng]
+                    : [28.61, 77.2]
+                }
+                enableSearch={true}
+                enableLocate={true}
+                onMapClick={handleMapSelect}
               >
-                <HiX className="w-6 h-6" />
-              </button>
-              
-              <div className="flex-1 relative rounded-t-xl overflow-hidden">
-                <MapContainer 
-                  center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : [28.61, 77.2]}
-                  enableSearch={true}
-                  enableLocate={true}
-                  onMapClick={handleMapSelect}
-                >
-                  {selectedLocation && <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
+                {selectedLocation && (
+                  <Marker
+                    position={[selectedLocation.lat, selectedLocation.lng]}
+                  >
                     <Popup>Selected Location</Popup>
-                  </Marker>}
-                </MapContainer>
-              </div>
-              
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
-                 <button 
-                   onClick={() => setShowMapModal(false)}
-                   className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                   type="button"
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   onClick={() => {
-                       setShowMapModal(false);
-                       toast.info("Location staged for update. Click 'Update Profile' to save.");
-                   }}
-                   disabled={!selectedLocation}
-                   className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
-                   type="button"
-                 >
-                   Confirm Location
-                 </button>
-              </div>
-           </div>
+                  </Marker>
+                )}
+              </MapContainer>
+            </div>
+
+            <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setShowMapModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowMapModal(false);
+                  toast.info(
+                    "Location staged for update. Click 'Update Profile' to save."
+                  );
+                }}
+                disabled={!selectedLocation}
+                className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
+                type="button"
+              >
+                Confirm Location
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>

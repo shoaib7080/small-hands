@@ -111,12 +111,15 @@ const NGODashboard = () => {
             <h3 className="font-bold text-xl">Did you know?</h3>
           </div>
           <p className="opacity-90 mb-4">
-            You gain +20 Impact Points for every verified resolution. Keep your
-            "Verified" badge by maintaining a 4.5+ rating.
+            You gain +20 Impact Points for every verified resolution. Higher
+            your resolve rate, greater your impact!
           </p>
-          <button className="bg-white text-primary-600 font-medium py-2 px-4 rounded self-start hover:bg-gray-100 transition-colors">
-            View Guidelines
-          </button>
+          <Link
+            to={"/leaderboard"}
+            className="bg-white text-primary-600 font-medium py-2 px-4 rounded self-start hover:bg-gray-100 transition-colors"
+          >
+            View Leaderboard
+          </Link>
         </div>
       </div>
     </div>

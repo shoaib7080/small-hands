@@ -2,8 +2,15 @@ import { Link } from "react-router-dom";
 import { HiX, HiCalendar, HiLocationMarker } from "react-icons/hi";
 import { getStatusColor, getStatusIcon } from "../../utils/statusHelpers.jsx";
 
-const ReportModal = ({ report, isOpen, onClose }) => {
+const ReportModal = ({ report, isOpen, onClose, onViewOnMap }) => {
   if (!isOpen || !report) return null;
+
+  const handleViewOnMap = () => {
+    if (onViewOnMap) {
+      onViewOnMap(report);
+      onClose(); // Close modal when viewing on map
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -44,13 +51,23 @@ const ReportModal = ({ report, isOpen, onClose }) => {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Link
-                  to={`/dashboard/reporter/create?lat=${report.location?.coordinates?.[1]}&lng=${report.location?.coordinates?.[0]}`}
-                  className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium"
-                >
-                  <HiLocationMarker className="w-4 h-4" />
-                  View on Map
-                </Link>
+                {onViewOnMap ? (
+                  <button
+                    onClick={handleViewOnMap}
+                    className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  >
+                    <HiLocationMarker className="w-4 h-4" />
+                    View on Map
+                  </button>
+                ) : (
+                  <Link
+                    to={`/dashboard/reporter/create?lat=${report.location?.coordinates?.[1]}&lng=${report.location?.coordinates?.[0]}`}
+                    className="flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  >
+                    <HiLocationMarker className="w-4 h-4" />
+                    View on Map
+                  </Link>
+                )}
               </div>
             </div>
 

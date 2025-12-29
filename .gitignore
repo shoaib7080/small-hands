@@ -137,3 +137,5 @@ dist
 
 # Firebase code 
 firebase-service-account.json
+
+dev-dist/

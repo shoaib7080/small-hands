@@ -4,6 +4,21 @@ import Reporter from "../models/reporterModel.js";
 import NGO from "../models/ngoModel.js";
 import admin from "../utils/firebaseAdmin.js";
 
+// Helper function to calculate distance between two points in km
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Earth's radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // 1. Create a Report
 export const createReport = async (req, res, next) => {
   try {
@@ -26,20 +41,23 @@ export const createReport = async (req, res, next) => {
     });
 
     // --- NOTIFICATION LOGIC ---
+    let nearbyNGOs = [];
     try {
-      // Find NGOs within 10km (10000 meters)
-      const nearbyNGOs = await NGO.find({
-        location: {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
-            },
-            $maxDistance: 10000,
-          },
-        },
-        fcmToken: { $exists: true, $ne: null }, // Only those with tokens
-      }).select("fcmToken");
+      // Find all NGOs with tokens first
+      const allNGOs = await NGO.find({
+        fcmToken: { $exists: true, $ne: null },
+      }).select("fcmToken location service_radius_km");
+
+      // Filter NGOs based on their individual service radius
+      nearbyNGOs = allNGOs.filter((ngo) => {
+        const distance = calculateDistance(
+          latitude,
+          longitude,
+          ngo.location.coordinates[1],
+          ngo.location.coordinates[0]
+        );
+        return distance <= (ngo.service_radius_km || 10); // Default to 10km if not set
+      });
 
       console.log(`[DEBUG] New Report at [${longitude}, ${latitude}]`);
       console.log(`[DEBUG] Found ${nearbyNGOs.length} NGOs nearby`);
@@ -47,7 +65,7 @@ export const createReport = async (req, res, next) => {
       if (nearbyNGOs.length > 0) {
         const tokens = nearbyNGOs.map((ngo) => ngo.fcmToken);
         console.log(`[DEBUG] Sending to tokens:`, tokens);
-        
+
         // Firebase Multicast Message
         const message = {
           notification: {
@@ -64,7 +82,10 @@ export const createReport = async (req, res, next) => {
         console.log("Notifications sent:", response.successCount);
         console.log("Failures:", response.failureCount);
         if (response.failureCount > 0) {
-             console.log("Failed tokens:", response.responses.filter(r => !r.success));
+          console.log(
+            "Failed tokens:",
+            response.responses.filter((r) => !r.success)
+          );
         }
       }
     } catch (notifyErr) {
@@ -84,7 +105,13 @@ export const createReport = async (req, res, next) => {
       });
     }
 
-    res.status(201).json({ status: "success", data: report });
+    res
+      .status(201)
+      .json({
+        status: "success",
+        data: report,
+        ngosNotified: nearbyNGOs.length,
+      });
   } catch (err) {
     next(err);
   }
@@ -102,6 +129,11 @@ export const getNearbyReports = async (req, res, next) => {
         .json({ status: "error", message: "Please provide lat and lng" });
     }
 
+    const requestingNGO = await NGO.findById(req.user.id).select(
+      "service_radius_km"
+    );
+    const defaultRadius = (requestingNGO?.service_radius_km || 10) * 1000; // Convert to meters
+
     const reports = await Report.find({
       location: {
         $near: {
@@ -109,7 +141,7 @@ export const getNearbyReports = async (req, res, next) => {
             type: "Point",
             coordinates: [parseFloat(lng), parseFloat(lat)],
           },
-          $maxDistance: parseInt(radius) || 10000, // Default 10km
+          $maxDistance: parseInt(radius) || defaultRadius, // Default 10km
         },
       },
       status: "Open", // Only show open cases
@@ -310,6 +342,40 @@ export const getRecentResolvedCases = async (req, res, next) => {
     res.status(200).json({
       status: "success",
       data: recentCases,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Get public NGO profile
+export const getNGOProfile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const ngo = await NGO.findById(id).select(
+      "-password -passwordResetToken -passwordResetExpires -emailVerificationToken -emailVerificationExpires"
+    );
+
+    if (!ngo) {
+      return res.status(404).json({ message: "NGO not found" });
+    }
+
+    // Get recent resolved cases by this NGO
+    const recentCases = await Report.find({
+      claimed_by: id,
+      status: "Resolved",
+    })
+      .populate("reporter_id", "name")
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        ngo,
+        recentCases,
+      },
     });
   } catch (err) {
     next(err);

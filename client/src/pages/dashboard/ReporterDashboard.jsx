@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { HiPlus, HiDocumentText } from "react-icons/hi"; // Removed unused icons
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { HiPlus, HiDocumentText, HiCheckCircle, HiStar } from "react-icons/hi"; // Removed unused icons
 import { toast } from "react-toastify"; // Import Toast
 import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
@@ -8,10 +8,8 @@ import StatCard from "../../components/dashboard/StatCard";
 import ReportModal from "../../components/dashboard/ReportModal";
 import RecentSuccessStories from "../../components/dashboard/RecentSuccessStories";
 
-
-
-
 const ReporterDashboard = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState({});
   const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +35,23 @@ const ReporterDashboard = () => {
     };
     fetchData();
   }, []);
+
+  const handleReportsPostedClick = () => {
+    if (myReports.length > 0) {
+      setSelectedReport(myReports[0]);
+      setShowModal(true);
+    } else {
+      toast.info("No reports posted yet");
+    }
+  };
+
+  const reporterHistory = () => {
+    navigate("/dashboard/reporter/history");
+  };
+
+  const handleReportsResolvedClick = () => {
+    navigate("/dashboard/reporter/history?filter=resolved");
+  };
 
   // useEffect(() => {
   //   const fetchStats = async () => {
@@ -75,15 +90,22 @@ const ReporterDashboard = () => {
           <h1 className="text-2xl font-bold text-text-primary">
             Hello, {user.name}
           </h1>
-          <p className="text-text-secondary">Here is your impact summary.</p>
+          <p className="text-text-secondary">
+            Here’s how your reports are helping the community.
+          </p>
         </div>
-        <Link
-          to="/dashboard/reporter/create"
-          className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
-        >
-          <HiPlus className="w-5 h-5" />
-          Create New Report
-        </Link>
+        <div className="flex flex-col t sm:items-center mt-6 gap-1 w-full md:w-auto">
+          <Link
+            to="/dashboard/reporter/create"
+            className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center text-center gap-2 w-full sm:w-auto justify-center"
+          >
+            <HiPlus className="w-5 h-5" />
+            Report someone in need
+          </Link>
+          <span className="text-xs text-text-muted">
+            Your report is shared only with verified NGOs nearby.
+          </span>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -92,30 +114,26 @@ const ReporterDashboard = () => {
           title="Karma Points"
           value={user.karma_points || 0}
           color="bg-warning-500"
+          icon={HiStar}
         />
         <StatCard
           title="Reports Posted"
           value={user.reports_posted || 0}
           color="bg-primary-500"
+          onClick={reporterHistory}
+          icon={HiDocumentText}
         />
         <StatCard
-          title="Verified Solutions"
+          title="Reports Resolved"
           value={user.reports_resolved || 0}
           color="bg-success-500"
+          icon={HiCheckCircle}
+          onClick={handleReportsResolvedClick}
         />
       </div>
 
       {/* Recent Success Stories */}
-      <div className="bg-surface rounded-xl shadow-sm p-6 border border-border">
-          <div className="flex justify-between items-center mb-4">
-             <h3 className="text-lg font-bold text-text-primary">
-              Community Impact
-            </h3>
-            <Link to="/dashboard/reporter/history" className="text-sm text-primary-600 font-bold hover:underline">
-                View My Reports
-            </Link>
-          </div>
-        
+      <div>
         <RecentSuccessStories />
       </div>
 

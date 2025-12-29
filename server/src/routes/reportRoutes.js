@@ -48,11 +48,13 @@ router.patch(
 
 router.get("/my-reports", protect, reportController.getMyReports);
 
-// Add this route to reportRoutes.js
 router.get(
   "/recent-resolved",
   protect,
   reportController.getRecentResolvedCases
 );
+
+// Public NGO profile
+router.get("/ngo/:id", reportController.getNGOProfile);
 
 export default router;

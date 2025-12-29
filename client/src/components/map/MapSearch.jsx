@@ -47,7 +47,7 @@ const MapSearch = () => {
   };
 
   return (
-    <div className="absolute top-4 left-4 right-4 z-[1000] max-w-80 md:left-16 md:right-auto md:w-80">
+    <div className="absolute top-4 left-16 right-4 z-[1000] max-w-80 md:right-auto md:w-80">
       {/* SEARCH INPUT */}
       <div className="bg-white rounded-lg shadow-lg flex items-center p-2">
         <span className="text-gray-400 mx-2">🔍</span>

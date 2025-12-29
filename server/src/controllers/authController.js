@@ -110,7 +110,16 @@ export const login = async (req, res, next) => {
 
 export const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, phone, latitude, longitude } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      latitude,
+      longitude,
+      website,
+      donation_link,
+      service_radius_km,
+    } = req.body;
     const userId = req.user.id;
 
     // Extract uploaded document URLs if any
@@ -125,6 +134,9 @@ export const updateProfile = async (req, res, next) => {
       phone,
       latitude,
       longitude,
+      website,
+      donation_link,
+      service_radius_km,
       documents: documentUrls,
     });
     res.status(200).json({ status: "success", data: updatedUser });
