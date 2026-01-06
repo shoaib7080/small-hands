@@ -48,7 +48,7 @@ const RecentSuccessStories = () => {
     <>
       <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-border p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-bold text-text-primary mb-3 sm:mb-6 flex items-center gap-2">
-          Recent Success Stories
+          Recently Resolved Cases
         </h2>
 
         {recentCases.length > 0 ? (
@@ -71,7 +71,8 @@ const RecentSuccessStories = () => {
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-text-muted">
                     <span>
-                      Reported by {case_item.reporter_id?.name || "Unknown"}
+                      Reported by{" "}
+                      {case_item.reporter_id?.name || "a Community Member"}
                     </span>
                     <span className="hidden sm:inline">•</span>
                     <span>Resolved {formatTimeAgo(case_item.updatedAt)}</span>

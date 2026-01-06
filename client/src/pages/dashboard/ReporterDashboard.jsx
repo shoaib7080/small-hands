@@ -85,24 +85,24 @@ const ReporterDashboard = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <div>
           <h1 className="text-2xl font-bold text-text-primary">
             Hello, {user.name}
           </h1>
           <p className="text-text-secondary">
-            Here’s how your reports are helping the community.
+            Here’s how your reports are helping people nearby.
           </p>
         </div>
         <div className="flex flex-col t sm:items-center mt-6 gap-1 w-full md:w-auto">
           <Link
             to="/dashboard/reporter/create"
-            className="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors flex items-center text-center gap-2 w-full sm:w-auto justify-center"
+            className="bg-primary-500 hover:bg-primary-600 text-white px-4 py-3 rounded-xl font-medium shadow-sm transition-colors flex items-center text-center gap-2 w-full sm:w-auto justify-center"
           >
             <HiPlus className="w-5 h-5" />
             Report someone in need
           </Link>
-          <span className="text-xs text-text-muted">
+          <span className="text-xs text-gray-800">
             Your report is shared only with verified NGOs nearby.
           </span>
         </div>
@@ -117,7 +117,7 @@ const ReporterDashboard = () => {
           icon={HiStar}
         />
         <StatCard
-          title="Reports Posted"
+          title="Reports Posted | Click to View"
           value={user.reports_posted || 0}
           color="bg-primary-500"
           onClick={reporterHistory}
@@ -129,6 +129,12 @@ const ReporterDashboard = () => {
           color="bg-success-500"
           icon={HiCheckCircle}
           onClick={handleReportsResolvedClick}
+        />
+        <StatCard
+          title="Verified NGOs"
+          value={user.verified_ngos_count || 0}
+          color="bg-blue-500"
+          icon={HiCheckCircle}
         />
       </div>
 

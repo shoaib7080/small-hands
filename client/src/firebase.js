@@ -19,18 +19,25 @@ const messaging = getMessaging(app);
 // Function to ask permission & save token
 export const requestForToken = async () => {
   try {
+    // Check if user is logged in
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.log("User not logged in, skipping FCM token request");
+      return;
+    }
+
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
       // vapidKey
-      const token = await getToken(messaging, {
+      const fcmToken = await getToken(messaging, {
         vapidKey:
           "BCh-km97aMC0G770byZLcw8-QNcJ7b5hOBcDkDbyF6Ynb0j-5_ll5RMkjFSTYdtvA8dL1u3y8Z2fGwSvTzc77kE",
       });
 
-      if (token) {
-        console.log("FCM Token Generated:", token);
+      if (fcmToken) {
+        console.log("FCM Token Generated:", fcmToken);
         // Send to backend
-        await api.patch("/users/update-fcm-token", { fcmToken: token });
+        await api.patch("/users/update-fcm-token", { fcmToken });
       }
     } else {
       console.log("Notification permission denied.");
@@ -41,11 +48,9 @@ export const requestForToken = async () => {
 };
 
 // Function to listen for messages when app is OPEN
-// Function to listen for messages when app is OPEN
 export const onMessageListener = (callback) => {
   return onMessage(messaging, (payload) => {
     console.log("[Foreground] Message received:", payload);
     callback(payload);
   });
 };
-

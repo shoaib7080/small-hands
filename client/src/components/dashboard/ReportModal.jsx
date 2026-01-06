@@ -29,18 +29,29 @@ const ReportModal = ({ report, isOpen, onClose, onViewOnMap }) => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              {getStatusIcon(report.status)}
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-                  report.status
-                )}`}
-              >
-                {report.status}
-              </span>
-              <span className="text-sm text-text-muted capitalize">
-                {report.severity} Priority
-              </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                {getStatusIcon(report.status)}
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                    report.status
+                  )}`}
+                >
+                  {report.status}
+                </span>
+                <span className="text-sm text-text-muted capitalize">
+                  {report.severity} Priority
+                </span>
+              </div>
+
+              {report.claimed_by && report.status !== "Open" && (
+                <p className="text-sm text-text-secondary">
+                  {report.status === "Resolved" ? "Resolved" : "Claimed"} by{" "}
+                  <span className="font-medium text-text-primary">
+                    {report.claimed_by.name}
+                  </span>
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -87,14 +98,14 @@ const ReportModal = ({ report, isOpen, onClose, onViewOnMap }) => {
               </div>
             )}
 
-            {report.claimed_by && (
+            {/* {report.claimed_by && (
               <div>
                 <h3 className="font-medium text-text-primary mb-2">
                   Handled By
                 </h3>
                 <p className="text-text-secondary">{report.claimed_by.name}</p>
               </div>
-            )}
+            )} */}
 
             {report.images && report.images.length > 0 && (
               <div>

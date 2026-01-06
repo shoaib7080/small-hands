@@ -107,15 +107,16 @@ const NGOProfile = () => {
                 </a>
               )}
               {ngo.donation_link && (
-                <a
-                  href={ngo.donation_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(ngo.donation_link);
+                    toast.success("UPI ID copied to clipboard!");
+                  }}
                   className="bg-success-500 hover:bg-success-600 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
                   <HiHeart className="w-5 h-5" />
                   Donate Now
-                </a>
+                </button>
               )}
             </div>
           </div>

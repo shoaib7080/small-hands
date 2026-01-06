@@ -1,6 +1,6 @@
 const StatCard = ({ title, value, subtext, color, onClick, icon: Icon }) => (
   <div
-    className={`bg-surface p-4 md:p-6 rounded-xl shadow-sm border border-border ${
+    className={`bg-surface p-4 md:p-6 rounded-xl shadow-md border border-border ${
       onClick ? "cursor-pointer hover:bg-gray-50 transition-colors" : ""
     }`}
     onClick={onClick}

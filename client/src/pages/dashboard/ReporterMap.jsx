@@ -19,6 +19,7 @@ const ReporterHome = () => {
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [myReports, setMyReports] = useState([]);
+  const [showPreviousReports, setShowPreviousReports] = useState(true);
   const [searchParams] = useSearchParams();
   const [viewingReport, setViewingReport] = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
@@ -121,6 +122,24 @@ const ReporterHome = () => {
 
   return (
     <div className="h-[calc(100vh-64px)] w-full relative overflow-hidden">
+      {/* Toggle for Previous Reports */}
+      <div className="absolute top-20  left-4 z-[1000] bg-white rounded-full shadow-lg px-4 py-2 flex items-center gap-3 border border-gray-200">
+        <span className="text-sm font-medium text-gray-700">
+          Show my previous reports
+        </span>
+        <button
+          onClick={() => setShowPreviousReports(!showPreviousReports)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            showPreviousReports ? "bg-primary-600" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              showPreviousReports ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
       {/* The Map */}
       <MapContainer
         center={mapCenter}
@@ -142,47 +161,78 @@ const ReporterHome = () => {
           <MapMarker position={userLocation} isUserLocation={true} />
         )}
 
-        {/* Show user's reports */}
-        {myReports.map((report) => {
-          const isHighlighted = report._id === highlightedId;
+        {/* Show user's reports - conditionally render based on toggle */}
+        {showPreviousReports &&
+          myReports.map((report) => {
+            const isHighlighted = report._id === highlightedId;
 
-          return (
-            <MapMarker
-              key={report._id}
-              position={[
-                report.location.coordinates[1],
-                report.location.coordinates[0],
-              ]}
-              type={report.type}
-              severity={report.severity}
-              status={report.status}
-              isHighlighted={isHighlighted}
-            >
-              <div className="min-w-[150px]">
-                <h3 className="font-bold">{report.type}</h3>
-                <div className="flex items-center justify-between mt-2 gap-2">
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-xs mt-1 ${
-                      report.status === "Resolved"
-                        ? "bg-green-100 text-green-700"
-                        : report.status === "Claimed"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {report.status}
-                  </span>
+            return (
+              <MapMarker
+                key={report._id}
+                markerId={report._id}
+                position={[
+                  report.location.coordinates[1],
+                  report.location.coordinates[0],
+                ]}
+                type={report.type}
+                severity={report.severity}
+                status={report.status}
+                isHighlighted={isHighlighted}
+              >
+                <div className="min-w-[200px] max-w-[280px] p-3 bg-white rounded-lg shadow-lg">
+                  {/* Category Badge */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className={` py-1 rounded-full text-xs font-bold ${
+                        report.severity === "High"
+                          ? "bg-error-100 text-error-700"
+                          : report.severity === "Critical"
+                          ? "bg-error-200 text-error-800"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
+                    >
+                      {report.type}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-1 mr-8 rounded-full font-bold ${
+                        report.status === "Resolved"
+                          ? "bg-green-100 text-green-700"
+                          : report.status === "Claimed"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {report.status}
+                    </span>
+                  </div>
+
+                  {/* Short Description */}
+                  <p className="text-sm text-gray-700 mb-2 line-clamp-1">
+                    {report.description}
+                  </p>
+
+                  {/* Reporting Time */}
+                  <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                    <span>🕒</span>
+                    {new Date(report.createdAt).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+
+                  {/* CTA Button */}
                   <button
                     onClick={() => setViewingReport(report)}
-                    className="text-primary-600 underline text-xs"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
                   >
-                    View Details
+                    View Full Details
                   </button>
                 </div>
-              </div>
-            </MapMarker>
-          );
-        })}
+              </MapMarker>
+            );
+          })}
 
         {/* Show new pin where user clicked */}
         {coords && (

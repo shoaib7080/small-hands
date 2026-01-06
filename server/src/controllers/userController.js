@@ -6,6 +6,17 @@ export const getMe = async (req, res, next) => {
     let user;
     if (req.user.role === "reporter") {
       user = await Reporter.findById(req.user.id).select("-password");
+
+      // Get total verified NGOs count
+      const verifiedNGOsCount = await NGO.countDocuments({
+        verification_status: "verified",
+      });
+
+      // Add to response
+      const userData = user.toObject();
+      userData.verified_ngos_count = verifiedNGOsCount;
+
+      return res.status(200).json({ status: "success", data: userData });
     } else if (req.user.role === "ngo") {
       user = await NGO.findById(req.user.id).select("-password");
     } else {

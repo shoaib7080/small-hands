@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Slide, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -21,20 +23,35 @@ import AdminReports from "./pages/admin/AdminReports";
 import OTPVerification from "./pages/auth/OTPVerification";
 import UserProfile from "./pages/profile/UserProfile";
 import ResetPassword from "./pages/auth/ResetPassword";
-import { useEffect } from "react";
 import { requestForToken, onMessageListener } from "./firebase";
 import { toast } from "react-toastify";
 import NGOProfile from "./pages/profile/NGOProfile";
 
 function App() {
-  useEffect(() => {
-    // 1. Ask Permission & Save Token
-    requestForToken();
+  const listenerRef = useRef(null);
 
-    // 2. Listen for messages (Foreground)
-    onMessageListener((payload) => {
-      toast.info(payload.notification.title + ": " + payload.notification.body);
-    });
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (user) {
+      requestForToken();
+
+      // Listen for messages (Foreground) - only once
+      if (!listenerRef.current) {
+        listenerRef.current = onMessageListener((payload) => {
+          toast.info(payload.notification.title, {
+            onClick: () => {
+              // Redirect to dashboard based on user role
+              if (user.role === "reporter") {
+                window.location.href = "/dashboard/reporter";
+              } else if (user.role === "ngo") {
+                window.location.href = "/dashboard/ngo";
+              }
+            },
+          });
+        });
+      }
+    }
   }, []);
 
   return (

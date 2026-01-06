@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import {
   APIProvider,
   Map,
@@ -9,6 +9,8 @@ import { HiLocationMarker } from "react-icons/hi";
 import { toast } from "react-toastify";
 import CustomMarker from "./CustomMarker";
 import MapSearch from "./MapSearch";
+
+const PopupContext = createContext();
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const MAP_ID = "DEMO_MAP_ID"; // Required for AdvancedMarker
@@ -33,9 +35,9 @@ const MapController = ({ center, zoom }) => {
 };
 
 // Wrapper for Marker to mimic Leaflet API slightly and use our CustomMarker
-export const MapMarker = ({ position, children, icon, ...props }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+export const MapMarker = ({ position, children, icon, markerId, ...props }) => {
+  const { openPopupId, setOpenPopupId } = useContext(PopupContext);
+  const isOpen = openPopupId === markerId;
   // Normalize position
   const pos = Array.isArray(position)
     ? { lat: position[0], lng: position[1] }
@@ -43,11 +45,15 @@ export const MapMarker = ({ position, children, icon, ...props }) => {
 
   return (
     <>
-      <CustomMarker position={pos} onClick={() => setIsOpen(true)} {...props} />
+      <CustomMarker
+        position={pos}
+        onClick={() => setOpenPopupId(markerId)}
+        {...props}
+      />
       {isOpen && children && (
         <InfoWindow
           position={pos}
-          onCloseClick={() => setIsOpen(false)}
+          onCloseClick={() => setOpenPopupId(null)}
           pixelOffset={[0, -30]}
         >
           {children}
@@ -68,6 +74,7 @@ const MapContainer = ({
   center = [28.61, 77.2],
   zoom = 13,
   enableSearch = false,
+  showBackButton = false,
   enableLocate = true,
   onMapClick,
   onLocationFound,
@@ -78,6 +85,7 @@ const MapContainer = ({
   const [userLocation, setUserLocation] = useState(null);
   const [userZoom, setUserZoom] = useState(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [openPopupId, setOpenPopupId] = useState(null);
 
   // Normalize Default Center
   const defaultCenter = Array.isArray(center)
@@ -120,60 +128,63 @@ const MapContainer = ({
 
   return (
     <APIProvider apiKey={API_KEY}>
-      <div className={`relative ${className} z-0`}>
-        <Map
-          defaultCenter={defaultCenter}
-          defaultZoom={zoom}
-          mapId={MAP_ID}
-          disableDefaultUI={true} // Cleaner look
-          className="h-full w-full"
-          onClick={(e) => {
-            if (onMapClick && e.detail.latLng) {
-              onMapClick(e.detail.latLng);
-            }
-          }}
-        >
-          <MapController
-            center={userLocation || center}
-            zoom={userZoom || zoom}
-          />
-
-          {enableSearch && <MapSearch />}
-
-          {/* Locate Me Button (Inside Map Context but absolute) */}
-          {/* We can place it here or outside. Inside is fine visually. */}
-
-          {/* Render Children (Markers) */}
-          {children}
-
-          {/* User Location Marker if found */}
-          {userLocation && ngoHQ && (
-            <CustomMarker
-              position={userLocation}
-              isHQ={true}
-              label="Headquarter"
-            />
-          )}
-          {userLocation && !ngoHQ && (
-            <CustomMarker position={userLocation} isUserLocation={true} />
-          )}
-        </Map>
-
-        {enableLocate && (
-          <button
-            onClick={handleLocate}
-            disabled={isLocating}
-            className="absolute bottom-6 right-4 sm:bottom-8 sm:right-6 z-10 bg-white text-gray-700 p-3 rounded-full shadow-xl hover:bg-gray-50 border border-gray-200 transition-transform hover:scale-105 active:scale-95"
-            title="Locate Me"
+      <PopupContext.Provider value={{ openPopupId, setOpenPopupId }}>
+        <div className={`relative ${className} z-0`}>
+          <Map
+            defaultCenter={defaultCenter}
+            defaultZoom={zoom}
+            mapId={MAP_ID}
+            disableDefaultUI={true} // Cleaner look
+            className="h-full w-full"
+            onClick={(e) => {
+              if (onMapClick && e.detail.latLng) {
+                onMapClick(e.detail.latLng);
+              }
+              setOpenPopupId(null);
+            }}
           >
-            {isLocating ? (
-              <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-            ) : (
-              <HiLocationMarker className="w-6 h-6 text-primary-600" />
+            <MapController
+              center={userLocation || center}
+              zoom={userZoom || zoom}
+            />
+
+            {enableSearch && <MapSearch />}
+
+            {/* Locate Me Button (Inside Map Context but absolute) */}
+            {/* We can place it here or outside. Inside is fine visually. */}
+
+            {/* Render Children (Markers) */}
+            {children}
+
+            {/* User Location Marker if found */}
+            {userLocation && ngoHQ && (
+              <CustomMarker
+                position={userLocation}
+                isHQ={true}
+                label="Headquarter"
+              />
             )}
-          </button>
-        )}
-      </div>
+            {userLocation && !ngoHQ && (
+              <CustomMarker position={userLocation} isUserLocation={true} />
+            )}
+          </Map>
+
+          {enableLocate && (
+            <button
+              onClick={handleLocate}
+              disabled={isLocating}
+              className="absolute bottom-6 right-4 sm:bottom-8 sm:right-6 z-10 bg-white text-gray-700 p-3 rounded-full shadow-xl hover:bg-gray-50 border border-gray-200 transition-transform hover:scale-105 active:scale-95"
+              title="Locate Me"
+            >
+              {isLocating ? (
+                <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+              ) : (
+                <HiLocationMarker className="w-6 h-6 text-primary-600" />
+              )}
+            </button>
+          )}
+        </div>
+      </PopupContext.Provider>
     </APIProvider>
   );
 };
