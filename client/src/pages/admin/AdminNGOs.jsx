@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { HiLocationMarker, HiX } from "react-icons/hi";
-import { Marker, Popup } from "react-leaflet";
 import api from "../../services/api";
 import Input from "../../components/common/Input";
 import ReportHistoryModal from "./ReportHistoryModal";
-import MapContainer from "../../components/map/MapContainer";
+import MapContainer, { MapMarker } from "../../components/map/MapContainer";
 
 const AdminNGOs = () => {
   const [activeTab, setActiveTab] = useState("pending"); // pending | verified | add
@@ -15,7 +14,14 @@ const AdminNGOs = () => {
   const [historyTarget, setHistoryTarget] = useState(null);
 
   // Form for Manual Creation
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm();
 
   // Map Selection State
   const [showMapModal, setShowMapModal] = useState(false);
@@ -235,23 +241,39 @@ const AdminNGOs = () => {
                 placeholder="******"
                 {...register("password", { required: true })}
               />
-              
+
               {/* Location Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">HQ Location</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  HQ Location
+                </label>
                 <div className="flex gap-2">
-                   <button
+                  <button
                     type="button"
                     onClick={() => setShowMapModal(true)}
                     className="flex-1 border border-gray-300 rounded p-2 text-left text-gray-500 hover:bg-gray-50 flex items-center gap-2"
-                   >
-                     <HiLocationMarker className="text-blue-600" />
-                     {watch("latitude") ? "Location Selected (Click to change)" : "Select Location on Map"}
-                   </button>
-                   <input type="hidden" {...register("latitude", { required: "Location is required" })} />
-                   <input type="hidden" {...register("longitude", { required: true })} />
+                  >
+                    <HiLocationMarker className="text-blue-600" />
+                    {watch("latitude")
+                      ? "Location Selected (Click to change)"
+                      : "Select Location on Map"}
+                  </button>
+                  <input
+                    type="hidden"
+                    {...register("latitude", {
+                      required: "Location is required",
+                    })}
+                  />
+                  <input
+                    type="hidden"
+                    {...register("longitude", { required: true })}
+                  />
                 </div>
-                {errors.latitude && <p className="text-red-500 text-xs mt-1">Location is required</p>}
+                {errors.latitude && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Location is required
+                  </p>
+                )}
               </div>
 
               <button className="w-full bg-blue-800 text-white font-bold py-3 rounded hover:bg-blue-900 transition">
@@ -270,49 +292,59 @@ const AdminNGOs = () => {
           onClose={() => setHistoryTarget(null)}
         />
       )}
-      
+
       {/* 4. Map Selection Modal */}
       {showMapModal && (
         <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
-              <button 
-                onClick={() => setShowMapModal(false)}
-                className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
+            <button
+              onClick={() => setShowMapModal(false)}
+              className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+            >
+              <HiX className="w-6 h-6" />
+            </button>
+
+            <div className="flex-1 relative rounded-t-xl overflow-hidden">
+              <MapContainer
+                center={
+                  selectedLocation
+                    ? [selectedLocation.lat, selectedLocation.lng]
+                    : [28.61, 77.2]
+                }
+                enableSearch={true}
+                enableLocate={true}
+                onMapClick={handleMapSelect}
               >
-                <HiX className="w-6 h-6" />
+                {selectedLocation && (
+                  <MapMarker
+                    position={[selectedLocation.lat, selectedLocation.lng]}
+                    type="HQ"
+                    severity="Low"
+                  >
+                    <div>Selected Location</div>
+                  </MapMarker>
+                )}
+              </MapContainer>
+            </div>
+
+            <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setShowMapModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                type="button"
+              >
+                Cancel
               </button>
-              
-              <div className="flex-1 relative rounded-t-xl overflow-hidden">
-                <MapContainer 
-                  center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : [28.61, 77.2]}
-                  enableSearch={true}
-                  enableLocate={true}
-                  onMapClick={handleMapSelect}
-                >
-                  {selectedLocation && <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
-                    <Popup>Selected Location</Popup>
-                  </Marker>}
-                </MapContainer>
-              </div>
-              
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
-                 <button 
-                   onClick={() => setShowMapModal(false)}
-                   className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                   type="button"
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   onClick={confirmLocation}
-                   disabled={!selectedLocation}
-                   className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
-                   type="button"
-                 >
-                   Confirm Location
-                 </button>
-              </div>
-           </div>
+              <button
+                onClick={confirmLocation}
+                disabled={!selectedLocation}
+                className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
+                type="button"
+              >
+                Confirm Location
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

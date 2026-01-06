@@ -1,121 +1,71 @@
 import { useState, useEffect } from "react";
 import {
-  MapContainer as LeafletMapContainer,
-  TileLayer,
+  APIProvider,
+  Map,
+  InfoWindow,
   useMap,
-  useMapEvents,
-  Marker,
-} from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+} from "@vis.gl/react-google-maps";
 import { HiLocationMarker } from "react-icons/hi";
 import { toast } from "react-toastify";
+import CustomMarker from "./CustomMarker";
 import MapSearch from "./MapSearch";
-import { set } from "lodash";
 
-// Internal Controller to handle flyTo and clicks
-// We combine the functionality here to keep the main component clean
-const MapController = ({ center, onMapClick, zoomLevel }) => {
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const MAP_ID = "DEMO_MAP_ID"; // Required for AdvancedMarker
+
+// Internal Controller to handle camera updates from props
+const MapController = ({ center, zoom }) => {
   const map = useMap();
 
-  // Handle FlyTo changes
   useEffect(() => {
-    if (center) {
-      map.flyTo(center, zoomLevel || map.getZoom(), { animate: true });
+    if (map && center) {
+      // center is [lat, lng] arrays in our app, but Google Maps wants {lat, lng} literals usually.
+      // However, the library and API are flexible. Let's normalize.
+      const newCenter = Array.isArray(center)
+        ? { lat: center[0], lng: center[1] }
+        : center;
+
+      map.moveCamera({ center: newCenter, zoom: zoom || map.getZoom() });
     }
-  }, [center, map, zoomLevel]);
-
-  // Handle Resize Issues (Grey tiles)
-  useEffect(() => {
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
-  }, [map]);
-
-  // Handle Clicks
-  useMapEvents({
-    click(e) {
-      if (onMapClick) {
-        onMapClick(e.latlng);
-      }
-    },
-    locationfound(e) {
-      map.flyTo(e.latlng, 14);
-    },
-  });
+  }, [map, center, zoom]);
 
   return null;
 };
 
-// Internal Component for "Locate Me" Button
-// const LocateButton = ({ onLocationFound, ngoHQ }) => {
-//   const map = useMap();
-//   const [isLocating, setIsLocating] = useState(false);
-//   const [userLocation, setUserLocation] = useState(null);
+// Wrapper for Marker to mimic Leaflet API slightly and use our CustomMarker
+export const MapMarker = ({ position, children, icon, ...props }) => {
+  const [isOpen, setIsOpen] = useState(false);
 
-//   const handleLocate = (e) => {
-//     e.preventDefault();
-//     e.stopPropagation();
+  // Normalize position
+  const pos = Array.isArray(position)
+    ? { lat: position[0], lng: position[1] }
+    : position;
 
-//     const user = JSON.parse(localStorage.getItem("user") || "{}");
+  return (
+    <>
+      <CustomMarker position={pos} onClick={() => setIsOpen(true)} {...props} />
+      {isOpen && children && (
+        <InfoWindow
+          position={pos}
+          onCloseClick={() => setIsOpen(false)}
+          pixelOffset={[0, -30]}
+        >
+          {children}
+        </InfoWindow>
+      )}
+    </>
+  );
+};
 
-//     // If user is NGO and HQ location is available, go to HQ
-//     if (user.role === "ngo" && ngoHQ) {
-//       toast.info("Zooming to HQ...");
-//       map.flyTo(ngoHQ, 14, { animate: true });
-//       return;
-//     }
-
-//     // Otherwise, get current location
-//     if (!navigator.geolocation) {
-//       return toast.error("Geolocation is not supported");
-//     }
-
-//     setIsLocating(true);
-
-//     navigator.geolocation.getCurrentPosition(
-//       (position) => {
-//         const { latitude, longitude } = position.coords;
-//         const location = [latitude, longitude];
-
-//         setUserLocation(location);
-//         map.flyTo(location, 16, { animate: true });
-
-//         // Notify parent if needed (e.g. to set a pin)
-//         if (onLocationFound) {
-//           onLocationFound({ lat: latitude, lng: longitude });
-//         }
-//         setIsLocating(false);
-//       },
-//       () => {
-//         toast.error("Unable to retrieve location");
-//         setIsLocating(false);
-//       }
-//     );
-//   };
-
-//   return (
-//     <>
-//       <button
-//         onClick={handleLocate}
-//         disabled={isLocating}
-//         className="absolute bottom-20 right-5 z-[1000] bg-white text-gray-700 p-2 rounded-full shadow-lg hover:bg-gray-50 border border-gray-200 disabled:opacity-70"
-//         title="Locate Me"
-//         type="button"
-//       >
-//         <HiLocationMarker
-//           className={`w-6 h-6 text-primary-600 ${
-//             isLocating ? "animate-spin" : ""
-//           }`}
-//         />
-//       </button>
-
-//       {userLocation && <Marker position={userLocation} />}
-//     </>
-//   );
-// };
+// Wrapper for Popup (InfoWindow)
+export const MapPopup = ({ children }) => {
+  // In our MapMarker logic above, we render children inside InfoWindow.
+  // So 'MapPopup' purely acts as a container for content in this migration.
+  return <div className="p-1">{children}</div>;
+};
 
 const MapContainer = ({
-  center = [28.61, 77.2], // Default Delhi
+  center = [28.61, 77.2],
   zoom = 13,
   enableSearch = false,
   enableLocate = true,
@@ -125,115 +75,106 @@ const MapContainer = ({
   className = "h-full w-full",
   ngoHQ = null,
 }) => {
-  const [isLocating, setIsLocating] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [userZoom, setUserZoom] = useState(null);
+  const [isLocating, setIsLocating] = useState(false);
 
-  const handleLocate = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // Normalize Default Center
+  const defaultCenter = Array.isArray(center)
+    ? { lat: center[0], lng: center[1] }
+    : center;
 
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-
-    // If user is NGO and HQ location is available, go to HQ
-    if (user.role === "ngo" && ngoHQ) {
+  const handleLocate = () => {
+    if (ngoHQ) {
       toast.info("Zooming to HQ...");
-      setUserLocation(ngoHQ);
-      if (onLocationFound) {
-        onLocationFound({ lat: ngoHQ[0], lng: ngoHQ[1] });
-      }
-      setIsLocating(false);
+      const hqPos = Array.isArray(ngoHQ)
+        ? { lat: ngoHQ[0], lng: ngoHQ[1] }
+        : ngoHQ;
+      setUserLocation(hqPos);
+      setUserZoom(18);
+      if (onLocationFound) onLocationFound(hqPos);
       return;
     }
 
-    // Otherwise, get current location
-    if (!navigator.geolocation) {
-      return toast.error("Geolocation is not supported");
-    }
+    if (!navigator.geolocation) return toast.error("Geolocation not supported");
 
     setIsLocating(true);
-
-    const options = {
-      enableHighAccuracy: false, // Use network location instead of GPS
-      timeout: 10000, // 10 second timeout
-      maximumAge: 300000, // Accept cached location up to 5 minutes old
-    };
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        const location = [latitude, longitude];
-
-        setUserLocation(location);
-
-        // Notify parent if needed (e.g. to set a pin)
-        if (onLocationFound) {
-          onLocationFound({ lat: latitude, lng: longitude });
-        }
+        const pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setUserLocation(pos);
+        setUserZoom(18);
+        if (onLocationFound) onLocationFound(pos);
         setIsLocating(false);
       },
       (error) => {
-        console.log("Location error:", error);
-        let errorMessage = "Unable to retrieve location";
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage =
-              "Location access denied. Please enable location permissions.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = "Location information unavailable.";
-            break;
-          case error.TIMEOUT:
-            errorMessage = "Location request timed out.";
-            break;
-        }
-
-        toast.error(errorMessage);
+        console.error(error);
+        toast.error("Unable to get location");
         setIsLocating(false);
-      },
-      options
+      }
     );
   };
 
   return (
-    <div className={`relative ${className} z-0`}>
-      <LeafletMapContainer
-        center={userLocation || center}
-        zoom={userLocation ? 16 : zoom}
-        style={{ height: "100%", width: "100%" }}
-        zoomControl={false}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-        {/* Search Input Overlay - Must be inside MapContainer to use useMap() */}
-        {enableSearch && <MapSearch />}
-
-        <MapController
-          center={userLocation || center}
-          zoomLevel={userLocation ? 18 : undefined}
-          onMapClick={onMapClick}
-        />
-
-        {userLocation && <Marker position={userLocation} />}
-        {children}
-      </LeafletMapContainer>
-
-      {/* Move button outside LeafletMapContainer */}
-      {enableLocate && (
-        <button
-          onClick={handleLocate}
-          disabled={isLocating}
-          className="absolute bottom-20 right-5 z-[1000] bg-white text-gray-700 p-2 rounded-full shadow-lg hover:bg-gray-50 border border-gray-200 disabled:opacity-70"
-          title="Locate Me"
-          type="button"
+    <APIProvider apiKey={API_KEY}>
+      <div className={`relative ${className} z-0`}>
+        <Map
+          defaultCenter={defaultCenter}
+          defaultZoom={zoom}
+          mapId={MAP_ID}
+          disableDefaultUI={true} // Cleaner look
+          className="h-full w-full"
+          onClick={(e) => {
+            if (onMapClick && e.detail.latLng) {
+              onMapClick(e.detail.latLng);
+            }
+          }}
         >
-          {isLocating ? (
-            <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-          ) : (
-            <HiLocationMarker className="w-6 h-6 text-primary-600" />
+          <MapController
+            center={userLocation || center}
+            zoom={userZoom || zoom}
+          />
+
+          {enableSearch && <MapSearch />}
+
+          {/* Locate Me Button (Inside Map Context but absolute) */}
+          {/* We can place it here or outside. Inside is fine visually. */}
+
+          {/* Render Children (Markers) */}
+          {children}
+
+          {/* User Location Marker if found */}
+          {userLocation && ngoHQ && (
+            <CustomMarker
+              position={userLocation}
+              isHQ={true}
+              label="Headquarter"
+            />
           )}
-        </button>
-      )}
-    </div>
+          {userLocation && !ngoHQ && (
+            <CustomMarker position={userLocation} isUserLocation={true} />
+          )}
+        </Map>
+
+        {enableLocate && (
+          <button
+            onClick={handleLocate}
+            disabled={isLocating}
+            className="absolute bottom-6 right-4 sm:bottom-8 sm:right-6 z-10 bg-white text-gray-700 p-3 rounded-full shadow-xl hover:bg-gray-50 border border-gray-200 transition-transform hover:scale-105 active:scale-95"
+            title="Locate Me"
+          >
+            {isLocating ? (
+              <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+            ) : (
+              <HiLocationMarker className="w-6 h-6 text-primary-600" />
+            )}
+          </button>
+        )}
+      </div>
+    </APIProvider>
   );
 };
 

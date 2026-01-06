@@ -19,10 +19,16 @@
   --color-sidebar-border: #4b5563;
   --color-sidebar-text: #d1d5db;
   --color-sidebar-text-inactive: #9ca3af;
+
+  --font-family-sans: "Poppins", system-ui, -apple-system, sans-serif;
 }
-.leaflet-container {
-  height: 100%;
-  width: 100%;
+
+body {
+  font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+}
+
+.gm-style-iw-chr {
+  height: 0px !important;
 }
 
 /* :root {

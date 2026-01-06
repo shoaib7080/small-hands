@@ -1,37 +1,20 @@
 import { useState, useEffect } from "react";
-import { TileLayer, Marker, Popup, useMapEvents, useMap } from "react-leaflet";
-import MapContainer from "../../components/map/MapContainer";
+import MapContainer, {
+  MapMarker,
+  MapPopup,
+} from "../../components/map/MapContainer";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
-import { HiArrowLeft, HiPlus, HiLocationMarker } from "react-icons/hi";
+import { HiPlus, HiLocationMarker } from "react-icons/hi";
 import api from "../../services/api";
-import "leaflet/dist/leaflet.css";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { processImages } from "../../utils/imageUtils";
 import ReportModal from "../../components/dashboard/ReportModal";
-import { blueIcon, blueIconBig, greenIcon } from "../../utils/mapIcons.js";
-
-// 1. Component to Handle Map Clicks & User Location
-const MapClickParams = ({ setCoords }) => {
-  const map = useMapEvents({
-    click(e) {
-      setCoords([e.latlng.lat, e.latlng.lng]); // Set pin location
-    },
-    locationfound(e) {
-      map.flyTo(e.latlng, 14); // Zoom to user
-    },
-  });
-
-  // Ask for location on load
-  useEffect(() => {
-    map.locate();
-  }, [map]);
-
-  return null;
-};
 
 const ReporterHome = () => {
   const [coords, setCoords] = useState(null); // [lat, lng]
+  const [userLocation, setUserLocation] = useState(null);
+  const [mapZoom, setMapZoom] = useState(13);
   const [mapCenter, setMapCenter] = useState([26.7606, 83.3732]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,7 +23,6 @@ const ReporterHome = () => {
   const [viewingReport, setViewingReport] = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
   const [processedImages, setProcessedImages] = useState([]);
-  // const [formData, setFormData] = useState({ image: null });
   const [imagePreview, setImagePreview] = useState(null);
 
   const navigate = useNavigate();
@@ -86,7 +68,6 @@ const ReporterHome = () => {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-
     // Show loading state if you have one
     const processed = await processImages(files);
     setProcessedImages(processed);
@@ -136,85 +117,88 @@ const ReporterHome = () => {
       report.location.coordinates[1],
       report.location.coordinates[0],
     ]);
-    // Optional: You could also highlight the specific marker here
   };
 
   return (
-    <div className="h-screen w-full relative">
-      <div
-        className="absolute top-3
-       left-5 z-[1000]"
-      >
-        <button
-          onClick={() => navigate(-1)}
-          className="bg-surface text-text-primary w-10 h-10 rounded-full shadow-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
-        >
-          <HiArrowLeft className="w-5 h-5" />
-        </button>
-      </div>
+    <div className="h-[calc(100vh-64px)] w-full relative overflow-hidden">
       {/* The Map */}
       <MapContainer
         center={mapCenter}
-        zoom={13}
+        zoom={mapZoom}
         enableSearch={true}
+        showBackButton={true}
+        enableLocate={true}
         onMapClick={(latlng) => {
           setCoords([latlng.lat, latlng.lng]);
           setMapCenter([latlng.lat, latlng.lng]);
+          setMapZoom(16);
+        }}
+        onLocationFound={(pos) => {
+          setUserLocation([pos.lat, pos.lng]);
         }}
       >
+        {/* User location marker (blue) */}
+        {userLocation && (
+          <MapMarker position={userLocation} isUserLocation={true} />
+        )}
+
         {/* Show user's reports */}
         {myReports.map((report) => {
           const isHighlighted = report._id === highlightedId;
-          const icon = isHighlighted ? blueIconBig : blueIcon;
 
           return (
-            <Marker
+            <MapMarker
               key={report._id}
               position={[
                 report.location.coordinates[1],
                 report.location.coordinates[0],
               ]}
-              icon={icon}
+              type={report.type}
+              severity={report.severity}
+              status={report.status}
+              isHighlighted={isHighlighted}
             >
-              <Popup>
-                <div className="min-w-[150px]">
-                  <h3 className="font-bold">{report.type}</h3>
-                  {/* <p className="text-sm text-gray-600">{report.description}</p> */}
-                  <div className="flex items-center justify-between mt-2 gap-2">
-                    <span
-                      className={`inline-block px-2 py-1 rounded text-xs mt-1 ${
-                        report.status === "Resolved"
-                          ? "bg-green-100 text-green-700"
-                          : report.status === "Claimed"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {report.status}
-                    </span>
-                    <button
-                      onClick={() => setViewingReport(report)}
-                      className="text-primary-600 underline text-xs"
-                    >
-                      View Details
-                    </button>
-                  </div>
+              <div className="min-w-[150px]">
+                <h3 className="font-bold">{report.type}</h3>
+                <div className="flex items-center justify-between mt-2 gap-2">
+                  <span
+                    className={`inline-block px-2 py-1 rounded text-xs mt-1 ${
+                      report.status === "Resolved"
+                        ? "bg-green-100 text-green-700"
+                        : report.status === "Claimed"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {report.status}
+                  </span>
+                  <button
+                    onClick={() => setViewingReport(report)}
+                    className="text-primary-600 underline text-xs"
+                  >
+                    View Details
+                  </button>
                 </div>
-              </Popup>
-            </Marker>
+              </div>
+            </MapMarker>
           );
         })}
 
         {/* Show new pin where user clicked */}
         {coords && (
-          <Marker position={coords} icon={greenIcon}>
-            <Popup>Location Selected</Popup>
-          </Marker>
+          <MapMarker
+            position={coords}
+            type="New"
+            severity="High"
+            isHighlighted={true}
+          >
+            <div>Location Selected</div>
+          </MapMarker>
         )}
       </MapContainer>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-4 left-4 md:bottom-10 md:right-10 z-[1000] max-w-[calc(100vw-2rem)]">
+      <div className="fixed bottom-4 left-4 md:bottom-10 md:left-10 z-[1000] max-w-[calc(100vw-2rem)]">
         {coords && !showModal && (
           <button
             onClick={() => setShowModal(true)}

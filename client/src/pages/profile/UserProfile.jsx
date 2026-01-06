@@ -15,11 +15,9 @@ import {
   HiPlus,
   HiMinus,
 } from "react-icons/hi";
-import { Marker, Popup } from "react-leaflet";
 import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
-import MapContainer from "../../components/map/MapContainer";
-import "leaflet/dist/leaflet.css";
+import MapContainer, { MapMarker } from "../../components/map/MapContainer";
 import { processImages } from "../../utils/imageUtils";
 
 const UserProfile = () => {
@@ -653,11 +651,13 @@ const UserProfile = () => {
                 onMapClick={handleMapSelect}
               >
                 {selectedLocation && (
-                  <Marker
+                  <MapMarker
                     position={[selectedLocation.lat, selectedLocation.lng]}
+                    type="HQ"
+                    severity="Low"
                   >
-                    <Popup>Selected Location</Popup>
-                  </Marker>
+                    <div>Selected Location</div>
+                  </MapMarker>
                 )}
               </MapContainer>
             </div>

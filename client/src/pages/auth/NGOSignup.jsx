@@ -3,16 +3,11 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  Marker,
-  Popup,
-} from "react-leaflet";
 import { toast } from "react-toastify";
 import { HiLocationMarker, HiX } from "react-icons/hi";
 import api from "../../services/api";
 import Input from "../../components/common/Input";
-import MapContainer from "../../components/map/MapContainer";
-import "leaflet/dist/leaflet.css";
+import MapContainer, { MapMarker } from "../../components/map/MapContainer";
 import { requestForToken } from "../../firebase";
 
 // 1. Zod Schema
@@ -27,8 +22,6 @@ const ngoSchema = z.object({
   }),
   longitude: z.number(),
 });
-
-
 
 const NGOSignup = () => {
   const navigate = useNavigate();
@@ -137,31 +130,43 @@ const NGOSignup = () => {
             <h3 className="font-semibold text-gray-700 border-b pb-2 mb-4">
               Headquarters Location
             </h3>
-            
+
             <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800 mb-4">
-               <p>Please pin your office location accurately so volunteers can find you.</p>
+              <p>
+                Please pin your office location accurately so volunteers can
+                find you.
+              </p>
             </div>
 
             <button
-                type="button"
-                onClick={() => {
-                    setShowMapModal(true);
-                    // Pre-fill existing selection if re-opening
-                    // if (getValues('latitude')) ... (Optional enhancement)
-                }}
-                className={`w-full border-2 border-dashed rounded-xl h-40 flex flex-col items-center justify-center gap-2 transition-colors ${
-                    errors.latitude ? "border-red-300 bg-red-50 text-red-500" : "border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-500"
-                }`}
+              type="button"
+              onClick={() => {
+                setShowMapModal(true);
+                // Pre-fill existing selection if re-opening
+                // if (getValues('latitude')) ... (Optional enhancement)
+              }}
+              className={`w-full border-2 border-dashed rounded-xl h-40 flex flex-col items-center justify-center gap-2 transition-colors ${
+                errors.latitude
+                  ? "border-red-300 bg-red-50 text-red-500"
+                  : "border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-500"
+              }`}
             >
-                <HiLocationMarker className="w-8 h-8" />
-                <span className="font-bold">
-                    {selectedLocation ? "Location Selected (Click to Change)" : "Click to Select Location"}
+              <HiLocationMarker className="w-8 h-8" />
+              <span className="font-bold">
+                {selectedLocation
+                  ? "Location Selected (Click to Change)"
+                  : "Click to Select Location"}
+              </span>
+              {selectedLocation && (
+                <span className="text-xs text-gray-400">
+                  ({selectedLocation.lat.toFixed(4)},{" "}
+                  {selectedLocation.lng.toFixed(4)})
                 </span>
-                {selectedLocation && <span className="text-xs text-gray-400">({selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)})</span>}
+              )}
             </button>
             <input type="hidden" {...register("latitude")} />
             <input type="hidden" {...register("longitude")} />
-            
+
             {errors.latitude && (
               <p className="text-error-500 text-xs mt-1 text-center font-bold">
                 {errors.latitude.message}
@@ -189,49 +194,60 @@ const NGOSignup = () => {
           </div>
         </form>
       </div>
-      
+
       {/* Map Selection Modal */}
       {showMapModal && (
         <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
-              <button 
-                onClick={() => setShowMapModal(false)}
-                className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+          <div className="bg-white rounded-xl w-full max-w-2xl h-[500px] flex flex-col shadow-2xl relative">
+            <button
+              onClick={() => setShowMapModal(false)}
+              className="absolute top-4 right-4 z-[2001] bg-white rounded-full p-1 shadow hover:bg-gray-100"
+            >
+              <HiX className="w-6 h-6" />
+            </button>
+
+            <div className="flex-1 relative rounded-t-xl overflow-hidden">
+              <MapContainer
+                center={
+                  selectedLocation
+                    ? [selectedLocation.lat, selectedLocation.lng]
+                    : [28.61, 77.2]
+                }
+                enableSearch={true}
+                enableLocate={true}
+                onMapClick={handleMapSelect}
               >
-                <HiX className="w-6 h-6" />
+                {selectedLocation && (
+                  <MapMarker
+                    position={[selectedLocation.lat, selectedLocation.lng]}
+                    type="HQ"
+                    severity="Low"
+                    isHighlighted={true}
+                  >
+                    <div>Selected Location</div>
+                  </MapMarker>
+                )}
+              </MapContainer>
+            </div>
+
+            <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
+              <button
+                onClick={() => setShowMapModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                type="button"
+              >
+                Cancel
               </button>
-              
-              <div className="flex-1 relative rounded-t-xl overflow-hidden">
-                <MapContainer 
-                  center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : [28.61, 77.2]}
-                  enableSearch={true}
-                  enableLocate={true}
-                  onMapClick={handleMapSelect}
-                >
-                  {selectedLocation && <Marker position={[selectedLocation.lat, selectedLocation.lng]}>
-                    <Popup>Selected Location</Popup>
-                  </Marker>}
-                </MapContainer>
-              </div>
-              
-              <div className="p-4 border-t flex justify-end gap-2 bg-gray-50 rounded-b-xl">
-                 <button 
-                   onClick={() => setShowMapModal(false)}
-                   className="px-4 py-2 text-gray-600 hover:text-gray-900"
-                   type="button"
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   onClick={confirmLocation}
-                   disabled={!selectedLocation}
-                   className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
-                   type="button"
-                 >
-                   Confirm Location
-                 </button>
-              </div>
-           </div>
+              <button
+                onClick={confirmLocation}
+                disabled={!selectedLocation}
+                className="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700 disabled:opacity-50"
+                type="button"
+              >
+                Confirm Location
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

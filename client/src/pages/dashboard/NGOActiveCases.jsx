@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { Marker, Popup } from "react-leaflet";
-import { io } from "socket.io-client";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { HiArrowLeft, HiLocationMarker, HiX, HiUpload } from "react-icons/hi";
-import L from "leaflet";
+import {
+  HiArrowLeft,
+  HiLocationMarker,
+  HiX,
+  HiUpload,
+  HiDocument,
+} from "react-icons/hi";
+import { io } from "socket.io-client";
 import api from "../../services/api";
 import LoadingOverlay from "../../components/common/LoadingOverlay";
-import MapContainer from "../../components/map/MapContainer";
-import "leaflet/dist/leaflet.css";
-import { redIcon, redIconBig, greenIcon } from "../../utils/mapIcons";
+import MapContainer, { MapMarker } from "../../components/map/MapContainer";
 
 const NGOActiveCases = () => {
   const [reports, setReports] = useState([]);
@@ -17,6 +19,7 @@ const NGOActiveCases = () => {
   const [loading, setLoading] = useState(true);
   const [mobileView, setMobileView] = useState("list");
   const [filter, setFilter] = useState("all");
+  const [userZoom, setUserZoom] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [checkingVerification, setCheckingVerification] = useState(true);
 
@@ -213,6 +216,7 @@ const NGOActiveCases = () => {
     ]);
     setMobileView("map");
     setViewingReport(null);
+    setUserZoom(16);
   };
 
   const openGoogleMaps = (lat, lng) => {
@@ -272,7 +276,7 @@ const NGOActiveCases = () => {
     <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] bg-background overflow-hidden">
       <LoadingOverlay isVisible={isLoadingOverlay} text={overlayText} />
       {/* HEADER (Mobile) */}
-      <div className="md:hidden bg-primary-600 text-white p-4 flex flex-col gap-2 shadow-md z-20 sticky top-0">
+      <div className="md:hidden bg-primary-600 rounded-b-2xl text-white p-4 flex flex-col gap-2 shadow-md z-20 sticky top-0">
         <div className="flex justify-between items-center">
           <Link
             to="/dashboard/ngo"
@@ -284,10 +288,10 @@ const NGOActiveCases = () => {
           <span className="font-bold">Live Console</span>
           <div className="w-10"></div>
         </div>
-        <div className="flex bg-primary-700 rounded p-1 mt-2">
+        <div className="flex bg-primary-700 rounded-full p-1 mt-2">
           <button
             onClick={() => setFilter("all")}
-            className={`flex-1 py-1 text-sm rounded ${
+            className={`flex-1 py-1 text-sm rounded-full ${
               filter === "all"
                 ? "bg-surface text-primary-600 font-bold"
                 : "text-primary-100"
@@ -297,7 +301,7 @@ const NGOActiveCases = () => {
           </button>
           <button
             onClick={() => setFilter("claimed")}
-            className={`flex-1 py-1 text-sm rounded ${
+            className={`flex-1 py-1 text-sm rounded-full ${
               filter === "claimed"
                 ? "bg-surface text-primary-600 font-bold"
                 : "text-primary-100"
@@ -314,7 +318,7 @@ const NGOActiveCases = () => {
           mobileView === "list" ? "flex" : "hidden md:flex"
         }`}
       >
-        <div className="hidden md:block p-4 bg-primary-600 text-white sticky top-0 z-10">
+        <div className="hidden md:block p-4 bg-primary-600 rounded-b-2xl text-white sticky top-0 z-10">
           <Link
             to="/dashboard/ngo"
             className="text-xs text-primary-100 hover:text-white mb-2 block flex items-center gap-1"
@@ -322,10 +326,10 @@ const NGOActiveCases = () => {
             <HiArrowLeft className="w-3 h-3" />
             Back to Dashboard
           </Link>
-          <div className="flex bg-primary-700 rounded p-1 mt-2">
+          <div className="flex bg-primary-700 rounded-full p-1 mt-2">
             <button
               onClick={() => setFilter("all")}
-              className={`flex-1 py-1 text-sm rounded ${
+              className={`flex-1 py-1 text-sm rounded-full ${
                 filter === "all"
                   ? "bg-surface text-primary-600 font-bold"
                   : "text-primary-100"
@@ -335,7 +339,7 @@ const NGOActiveCases = () => {
             </button>
             <button
               onClick={() => setFilter("claimed")}
-              className={`flex-1 py-1 text-sm rounded ${
+              className={`flex-1 py-1 text-sm rounded-full ${
                 filter === "claimed"
                   ? "bg-surface text-primary-600 font-bold"
                   : "text-primary-100"
@@ -361,11 +365,11 @@ const NGOActiveCases = () => {
             return (
               <div
                 key={report._id}
-                onClick={() => setViewingReport(report)} // Open Detail Modal on Click
-                className={`p-4 rounded-lg border-l-4 shadow-sm cursor-pointer transition hover:shadow-md ${
-                  isMyClaim
-                    ? "border-success-500 bg-green-50"
-                    : "border-error-500 bg-surface"
+                onClick={() => setViewingReport(report)}
+                onMouseEnter={() => setHighlightedId(report._id)}
+                onMouseLeave={() => setHighlightedId(null)}
+                className={`p-4 rounded-lg shadow-sm cursor-pointer transition hover:shadow-lg ${
+                  isMyClaim ? " bg-green-50" : " bg-surface"
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -375,7 +379,7 @@ const NGOActiveCases = () => {
                     </h3>
                     {report.status === "Resolved" && (
                       <span className="text-xs bg-success-100 text-success-700 px-2 py-0.5 rounded-full w-fit font-bold mt-1">
-                        ✅ Resolved
+                        Resolved
                       </span>
                     )}
                   </div>
@@ -395,7 +399,7 @@ const NGOActiveCases = () => {
                   {report.description}
                 </p>
                 <p className="text-xs text-primary-600 mt-2 font-bold">
-                  View Details →
+                  View Details
                 </p>
               </div>
             );
@@ -411,51 +415,88 @@ const NGOActiveCases = () => {
       >
         <MapContainer
           center={mapCenter || ngoLocation}
-          zoom={13}
+          zoom={userZoom || 13}
           enableSearch={true}
           className="h-full w-full"
           key={mobileView}
           ngoHQ={ngoLocation}
-          // The shared component handles flyTo via 'center' prop automatically
-          // If we need to force flyTo when user clicks 'Locate', we pass that state as center
-          // So we update our state logic slightly: mapCenter overrides ngoLocation
         >
-          <Marker position={ngoLocation}>
-            <Popup>HQ</Popup>
-          </Marker>
+          {/* HQ Marker */}
+          {/* {ngoLocation && (
+            <MapMarker
+              position={ngoLocation}
+              type="HQ"
+              label="Headquarter"
+            ></MapMarker>
+          )} */}
 
           {displayedReports.map((report) => {
             const isHighlighted = report._id === highlightedId;
-            // Use Green for both Claimed and Resolved (My Cases)
             const isMine =
               report.claimed_by &&
               (report.claimed_by._id === user.id ||
                 report.claimed_by === user.id);
-            let icon = isMine ? greenIcon : redIcon;
-
-            if (isHighlighted) icon = isMine ? greenIconBig : redIconBig;
 
             return (
-              <Marker
+              <MapMarker
                 key={report._id}
                 position={[
                   report.location.coordinates[1],
                   report.location.coordinates[0],
                 ]}
-                icon={icon}
+                type={report.type}
+                severity={report.severity}
+                status={report.status}
+                isHighlighted={isHighlighted}
+                isMine={isMine}
               >
-                <Popup>
-                  <div className="min-w-[150px]">
-                    <h3 className="font-bold">{report.type}</h3>
-                    <button
-                      onClick={() => setViewingReport(report)}
-                      className="text-primary-600 underline text-xs"
+                <div className="min-w-[200px] max-w-[280px] p-3 bg-white rounded-lg shadow-lg">
+                  {/* Category Badge */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-bold ${
+                        report.severity === "High"
+                          ? "bg-error-100 text-error-700"
+                          : report.severity === "Critical"
+                          ? "bg-error-200 text-error-800"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
                     >
-                      View Details
-                    </button>
+                      {report.type}
+                    </span>
+                    {isMine && (
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
+                        Yours
+                      </span>
+                    )}
                   </div>
-                </Popup>
-              </Marker>
+
+                  {/* Short Description */}
+                  <p className="text-sm text-gray-700 mb-2 line-clamp-1">
+                    {report.description}
+                  </p>
+
+                  {/* Reporting Time */}
+                  <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
+                    <span>🕒</span>
+                    {new Date(report.createdAt).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+
+                  {/* CTA Button */}
+                  <button
+                    onClick={() => setViewingReport(report)}
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    View Full Details
+                    {/* <span>→</span> */}
+                  </button>
+                </div>
+              </MapMarker>
             );
           })}
         </MapContainer>
@@ -470,10 +511,13 @@ const NGOActiveCases = () => {
           {mobileView === "list" ? (
             <>
               <HiLocationMarker className="w-4 h-4" />
-              Map
+              View Map
             </>
           ) : (
-            <>📋 List</>
+            <>
+              <HiDocument className="w-4 h-4" />
+              View List
+            </>
           )}
         </button>
       </div>
