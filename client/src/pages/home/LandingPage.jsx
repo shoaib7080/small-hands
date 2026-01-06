@@ -36,14 +36,14 @@ const LandingPage = () => {
         <div className="flex flex-col md:flex-row justify-center gap-4">
           <Link
             to="/register/reporter"
-            className="bg-primary-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-primary-700 shadow-lg transition transform hover:scale-105 flex items-center justify-center gap-2"
+            className="bg-primary-600 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-primary-700 shadow-lg transition transform hover:scale-105 flex items-center justify-center gap-2"
           >
             <HiLocationMarker className="w-6 h-6" />
             Report Someone in Need
           </Link>
           <Link
             to="/register/ngo"
-            className="bg-white text-primary-600 border-2 border-primary-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-primary-50 transition flex items-center justify-center gap-2"
+            className="bg-white text-primary-600 border-2 border-primary-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-primary-50 transition flex items-center justify-center gap-2"
           >
             <HiUserGroup className="w-6 h-6" />
             Register as NGO
@@ -58,11 +58,11 @@ const LandingPage = () => {
           <p className="text-text-secondary font-medium">Active NGOs</p>
         </div>
         <div className="p-6 bg-surface rounded-xl shadow-sm border border-border">
-          <div className="text-4xl font-bold text-success-500 mb-2">500+</div>
+          <div className="text-4xl font-bold text-primary-600 mb-2">500+</div>
           <p className="text-text-secondary font-medium">Lives Impacted</p>
         </div>
         <div className="p-6 bg-surface rounded-xl shadow-sm border border-border">
-          <div className="text-4xl font-bold text-warning-500 mb-2">24/7</div>
+          <div className="text-4xl font-bold text-primary-600 mb-2">24/7</div>
           <p className="text-text-secondary font-medium">Real-time Response</p>
         </div>
       </div>
@@ -88,7 +88,7 @@ const LandingPage = () => {
 
           <div className="bg-background p-8 rounded-xl shadow-sm border border-border text-center">
             <div className="w-16 h-16 bg-error-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <HiLightningBolt className="w-8 h-8 text-error-600" />
+              <HiLightningBolt className="w-8 h-8 text-primary-600" />
             </div>
             <h3 className="text-xl font-bold mb-2 text-text-primary">
               2. Instant Alert
@@ -100,7 +100,7 @@ const LandingPage = () => {
 
           <div className="bg-background p-8 rounded-xl shadow-sm border border-border text-center">
             <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <HiCheckCircle className="w-8 h-8 text-success-600" />
+              <HiCheckCircle className="w-8 h-8 text-primary-600" />
             </div>
             <h3 className="text-xl font-bold mb-2 text-text-primary">
               3. Help Arrives
