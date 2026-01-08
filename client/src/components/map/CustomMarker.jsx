@@ -7,6 +7,7 @@ import {
   HiPhone,
   HiQuestionMarkCircle,
 } from "react-icons/hi";
+import { GiClothes } from "react-icons/gi";
 import { MdFastfood, MdLocalHospital, MdCheckCircle } from "react-icons/md";
 
 const getTypeConfig = (type) => {
@@ -18,7 +19,7 @@ const getTypeConfig = (type) => {
     case "shelter":
       return { icon: HiHome, color: "bg-blue-500", text: "text-white" };
     case "clothes":
-      return { icon: HiHeart, color: "bg-purple-500", text: "text-white" };
+      return { icon: GiClothes, color: "bg-purple-500", text: "text-white" };
     case "new":
       return {
         icon: HiLocationMarker,

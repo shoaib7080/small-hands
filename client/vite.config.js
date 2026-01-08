@@ -14,8 +14,7 @@ export default defineConfig({
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
 
       devOptions: {
-        enabled: true, // Generate PWA in dev mode
-        type: "module", // Use ES modules for the service worker
+        enabled: false, // Disable PWA in development
       },
 
       workbox: {
@@ -41,7 +40,7 @@ export default defineConfig({
         background_color: "#ffffff",
         icons: [
           {
-            src: "pwa-192x192.png", // We will create these next
+            src: "pwa-192x192.png",
             sizes: "192x192",
             type: "image/png",
           },

@@ -288,10 +288,10 @@ const NGOActiveCases = () => {
           <span className="font-bold">Live Console</span>
           <div className="w-10"></div>
         </div>
-        <div className="flex bg-primary-700 rounded-full p-1 mt-2">
+        <div className="flex bg-primary-700 rounded-full p-2 mt-2">
           <button
             onClick={() => setFilter("all")}
-            className={`flex-1 py-1 text-sm rounded-full ${
+            className={`flex-1 py-2 text-sm rounded-full ${
               filter === "all"
                 ? "bg-surface text-primary-600 font-bold"
                 : "text-primary-100"
@@ -326,7 +326,7 @@ const NGOActiveCases = () => {
             <HiArrowLeft className="w-3 h-3" />
             Back to Dashboard
           </Link>
-          <div className="flex bg-primary-700 rounded-full p-1 mt-2">
+          <div className="flex bg-primary-700 rounded-full p-2 mt-2">
             <button
               onClick={() => setFilter("all")}
               className={`flex-1 py-1 text-sm rounded-full ${
@@ -440,6 +440,7 @@ const NGOActiveCases = () => {
             return (
               <MapMarker
                 key={report._id}
+                markerId={report._id}
                 position={[
                   report.location.coordinates[1],
                   report.location.coordinates[0],

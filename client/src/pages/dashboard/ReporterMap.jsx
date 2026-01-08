@@ -5,7 +5,7 @@ import MapContainer, {
 } from "../../components/map/MapContainer";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
-import { HiPlus, HiLocationMarker } from "react-icons/hi";
+import { HiPlus, HiLocationMarker, HiChevronDoubleUp } from "react-icons/hi";
 import api from "../../services/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { processImages } from "../../utils/imageUtils";
@@ -20,6 +20,7 @@ const ReporterHome = () => {
   const [loading, setLoading] = useState(false);
   const [myReports, setMyReports] = useState([]);
   const [showPreviousReports, setShowPreviousReports] = useState(true);
+  const [isSheetExpanded, setIsSheetExpanded] = useState(false);
   const [searchParams] = useSearchParams();
   const [viewingReport, setViewingReport] = useState(null);
   const [highlightedId, setHighlightedId] = useState(null);
@@ -118,6 +119,7 @@ const ReporterHome = () => {
       report.location.coordinates[1],
       report.location.coordinates[0],
     ]);
+    setIsSheetExpanded(false);
   };
 
   return (
@@ -150,7 +152,8 @@ const ReporterHome = () => {
         onMapClick={(latlng) => {
           setCoords([latlng.lat, latlng.lng]);
           setMapCenter([latlng.lat, latlng.lng]);
-          setMapZoom(16);
+          // Only update zoom if less than 17, otherwise keep current zoom
+          setMapZoom((currentZoom) => (currentZoom < 18 ? 18 : currentZoom));
         }}
         onLocationFound={(pos) => {
           setUserLocation([pos.lat, pos.lng]);
@@ -248,7 +251,7 @@ const ReporterHome = () => {
       </MapContainer>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-4 left-4 md:bottom-10 md:left-10 z-[1000] max-w-[calc(100vw-2rem)]">
+      <div className="fixed bottom-[8%] left-4  md:left-10 z-[1000] max-w-[calc(100vw-2rem)]">
         {coords && !showModal && (
           <button
             onClick={() => setShowModal(true)}
@@ -265,6 +268,90 @@ const ReporterHome = () => {
             Tap map to pin location
           </div>
         )}
+      </div>
+
+      {/* Bottom Sheet for My Reports List */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 shadow-2xl border-t border-gray-200 z-[1500] transition-transform duration-300 ease-in-out ${
+          isSheetExpanded ? "translate-y-0" : "translate-y-[calc(100%-56px)]"
+        }`}
+        style={{ maxHeight: "70vh" }}
+      >
+        <div
+          onClick={() => setIsSheetExpanded(!isSheetExpanded)}
+          className="flex items-center justify-between rounded-t-2xl px-4 py-4 cursor-pointer bg-surface border-t border-gray-300"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-800">
+              Show my previous reports
+            </span>
+            <span className="text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded-full font-medium">
+              {myReports.length}
+            </span>
+          </div>
+          <HiChevronDoubleUp
+            className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
+              isSheetExpanded ? "rotate-180" : "rotate-0"
+            }`}
+          />
+        </div>
+
+        <div
+          className="overflow-y-auto border-t bg-surface border-gray-100"
+          style={{ maxHeight: "calc(70vh - 56px)" }}
+        >
+          {myReports.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <p>No previous reports found</p>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3">
+              {myReports.map((report) => (
+                <div
+                  key={report._id}
+                  onClick={() => handleViewOnMap(report)}
+                  className="bg-gray-50 hover:bg-gray-100 p-4 rounded-lg border border-gray-200 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-bold ${
+                        report.severity === "High"
+                          ? "bg-error-100 text-error-700"
+                          : report.severity === "Critical"
+                          ? "bg-error-200 text-error-800"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
+                    >
+                      {report.type}
+                    </span>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-bold ${
+                        report.status === "Resolved"
+                          ? "bg-green-100 text-green-700"
+                          : report.status === "Claimed"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {report.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-800 mb-2 line-clamp-2">
+                    {report.description}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(report.createdAt).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Form Modal */}

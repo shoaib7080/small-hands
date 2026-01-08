@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useRef } from "react";
 import {
   APIProvider,
   Map,
@@ -18,18 +18,28 @@ const MAP_ID = "DEMO_MAP_ID"; // Required for AdvancedMarker
 // Internal Controller to handle camera updates from props
 const MapController = ({ center, zoom }) => {
   const map = useMap();
+  const prevZoomRef = useRef();
 
   useEffect(() => {
     if (map && center) {
-      // center is [lat, lng] arrays in our app, but Google Maps wants {lat, lng} literals usually.
-      // However, the library and API are flexible. Let's normalize.
       const newCenter = Array.isArray(center)
         ? { lat: center[0], lng: center[1] }
         : center;
 
-      map.moveCamera({ center: newCenter, zoom: zoom || map.getZoom() });
+      map.panTo(newCenter);
     }
-  }, [map, center, zoom]);
+  }, [map, center]);
+
+  useEffect(() => {
+    if (map && zoom !== undefined && zoom !== prevZoomRef.current) {
+      const currentZoom = map.getZoom();
+      // Only apply zoom if it's different from current zoom
+      if (zoom !== currentZoom) {
+        map.setZoom(zoom);
+      }
+      prevZoomRef.current = zoom;
+    }
+  }, [map, zoom]);
 
   return null;
 };
@@ -173,7 +183,7 @@ const MapContainer = ({
             <button
               onClick={handleLocate}
               disabled={isLocating}
-              className="absolute bottom-6 right-4 sm:bottom-8 sm:right-6 z-10 bg-white text-gray-700 p-3 rounded-full shadow-xl hover:bg-gray-50 border border-gray-200 transition-transform hover:scale-105 active:scale-95"
+              className="absolute bottom-[8%] right-4 sm:bottom-8 sm:right-6 z-10 bg-white text-gray-700 p-3 rounded-full shadow-xl hover:bg-gray-50 border border-gray-200 transition-transform hover:scale-105 active:scale-95"
               title="Locate Me"
             >
               {isLocating ? (
