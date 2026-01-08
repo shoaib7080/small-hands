@@ -26,6 +26,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import { requestForToken, onMessageListener } from "./firebase";
 import { toast } from "react-toastify";
 import NGOProfile from "./pages/profile/NGOProfile";
+import PublicRoute from "./components/common/PublicRoute";
 
 function App() {
   const listenerRef = useRef(null);
@@ -80,13 +81,57 @@ function App() {
       />
       <Navbar />
       <Routes>
-        {/* PUBLIC ROUTES */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register/reporter" element={<ReporterSignup />} />
-        <Route path="/register/ngo" element={<NGOSignup />} />
-        <Route path="/auth/verify-otp" element={<OTPVerification />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        {/* PUBLIC ROUTES - Redirect if logged in */}
+        <Route
+          path="/"
+          element={
+            <PublicRoute>
+              <LandingPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register/reporter"
+          element={
+            <PublicRoute>
+              <ReporterSignup />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register/ngo"
+          element={
+            <PublicRoute>
+              <NGOSignup />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/auth/verify-otp"
+          element={
+            <PublicRoute>
+              <OTPVerification />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
+
+        {/* These can remain public */}
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/ngo/:id" element={<NGOProfile />} />
 

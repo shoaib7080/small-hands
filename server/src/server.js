@@ -15,7 +15,9 @@ const io = new Server(server, {
     // Allow BOTH localhost (for testing) and your future Vercel domain
     origin: [
       "http://localhost:5173",
-      process.env.CLIENT_URL, // We will set this in Render dashboard later
+      process.env.CLIENT_URL,
+      process.env.CLIENT_URL2,
+      process.env.CLIENT_URL3,
     ],
     methods: ["GET", "POST"],
   },
