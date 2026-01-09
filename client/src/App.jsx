@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Slide, ToastContainer } from "react-toastify";
+import { io } from "socket.io-client";
 import "react-toastify/dist/ReactToastify.css";
 import Login from "./pages/auth/Login";
 import ReporterSignup from "./pages/auth/ReporterSignup";
@@ -26,6 +27,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import { requestForToken, onMessageListener } from "./firebase";
 import { toast } from "react-toastify";
 import NGOProfile from "./pages/profile/NGOProfile";
+import IssuesPage from "./pages/issues/IssuePage";
 import PublicRoute from "./components/common/PublicRoute";
 
 function App() {
@@ -37,12 +39,55 @@ function App() {
     if (user) {
       requestForToken();
 
-      // Listen for messages (Foreground) - only once
+      // Socket setup
+      if (!window.socket) {
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const socketUrl = apiUrl.replace("/api", "");
+
+        window.socket = io(socketUrl, {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+        });
+
+        // Wait for connection before emitting
+        window.socket.on("connect", () => {
+          console.log("Socket connected:", window.socket.id);
+          window.socket.emit("join", user.id);
+        });
+      }
+
+      const socket = window.socket;
+
+      // Admin notifications
+      if (user.role === "admin" || user.role === "super_admin") {
+        console.log("Setting up admin socket listener");
+        socket.on("admin:new-ngo-registration", (data) => {
+          console.log("Received admin:new-ngo-registration", data);
+          toast.info(`New NGO Registration: ${data.name}`, {
+            autoClose: 5000,
+            onClick: () => (window.location.href = "/admin/ngos"),
+          });
+        });
+      }
+
+      // NGO notifications
+      if (user.role === "ngo") {
+        console.log("Setting up NGO socket listener for user", user.id);
+        socket.on("ngo:verification-approved", (data) => {
+          console.log("Received ngo:verification-approved", data);
+          toast.success(data.message, {
+            autoClose: 8000,
+            onClick: () => (window.location.href = "/dashboard/ngo"),
+          });
+        });
+      }
+
+      // FCM listener
       if (!listenerRef.current) {
         listenerRef.current = onMessageListener((payload) => {
           toast.info(payload.notification.title, {
             onClick: () => {
-              // Redirect to dashboard based on user role
               if (user.role === "reporter") {
                 window.location.href = "/dashboard/reporter";
               } else if (user.role === "ngo") {
@@ -52,6 +97,14 @@ function App() {
           });
         });
       }
+
+      // Cleanup
+      return () => {
+        if (socket) {
+          socket.off("admin:new-ngo-registration");
+          socket.off("ngo:verification-approved");
+        }
+      };
     }
   }, []);
 
@@ -169,6 +222,7 @@ function App() {
             <Route path="ngos" element={<AdminNGOs />} /> {/* /admin/ngos */}
             <Route path="reporters" element={<AdminReporters />} />
             <Route path="reports" element={<AdminReports />} />
+            <Route path="issues" element={<IssuesPage />} />
           </Route>
         </Route>
 

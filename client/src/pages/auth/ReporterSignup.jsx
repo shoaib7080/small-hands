@@ -130,7 +130,7 @@ const ReporterSignup = () => {
       setShowVerification(true);
       toast.success("Verification code sent to your email!");
     } catch (error) {
-      toast.error("Registration failed. Please try again.");
+      toast.error(error.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ const ReporterSignup = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      
+
       // Sync FCM Token
       requestForToken();
       toast.success("Logged in with Google! 🚀");

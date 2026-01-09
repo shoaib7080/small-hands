@@ -647,6 +647,7 @@ const NGOActiveCases = () => {
                         src={img}
                         alt="Evidence"
                         className="w-full h-32 object-cover rounded-lg border border-border hover:scale-105 transition"
+                        onClick={() => window.open(doc, "_blank")}
                       />
                     ))}
                   </div>

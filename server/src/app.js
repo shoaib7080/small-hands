@@ -7,6 +7,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import leaderboardRoutes from "./routes/leaderboardRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import issueRoutes from "./routes/issueRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import { specs } from "./config/swagger.js";
 import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
@@ -45,6 +46,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/issues", issueRoutes);
 
 // Swagger Documentation Route
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));

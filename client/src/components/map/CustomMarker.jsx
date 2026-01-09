@@ -133,7 +133,7 @@ const CustomMarker = ({
 
           {/* Tooltip on Hover */}
           <div className="absolute bottom-full mb-2 hidden group-hover:block whitespace-nowrap bg-black/80 text-white text-xs px-2 py-1 rounded">
-            {type} ({severity}) {isMine ? "(Yours)" : ""}
+            {type} {type !== "HQ" && `(${severity})`} {isMine ? "(Yours)" : ""}
           </div>
         </div>
 

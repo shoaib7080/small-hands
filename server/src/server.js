@@ -46,6 +46,12 @@ mongoose
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  // Join user-specific room
+  socket.on("join", (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`User ${userId} joined their room`);
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });

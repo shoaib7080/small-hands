@@ -44,7 +44,13 @@ export const updateFcmToken = async (req, res, next) => {
     let Model;
     if (role === "reporter") Model = Reporter;
     else if (role === "ngo") Model = NGO;
-    else return res.status(400).json({ message: "Invalid role" });
+    else if (role === "admin" || role === "super_admin") {
+      const Admin = (await import("../models/adminModel.js")).default;
+      await Admin.findByIdAndUpdate(userId, { fcm_token: fcmToken });
+      return res
+        .status(200)
+        .json({ status: "success", message: "Token updated" });
+    } else return res.status(400).json({ message: "Invalid role" });
 
     await Model.findByIdAndUpdate(userId, { fcmToken });
 

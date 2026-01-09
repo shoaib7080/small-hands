@@ -7,6 +7,7 @@ import NGO from "../models/ngoModel.js";
 import { OAuth2Client } from "google-auth-library";
 import { createSendToken } from "../utils/jwtToken.js";
 import logger from "../utils/logger.js";
+import admin from "../utils/firebaseAdmin.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -74,6 +75,49 @@ export const register = async (req, res, next) => {
       });
     } else if (role === "ngo") {
       const result = await authService.registerNGO(req.body);
+
+      // Fetch the full NGO object to get all details
+      const ngo = await NGO.findById(result.user.id);
+
+      // Socket notification
+      const io = req.app.get("io");
+      io.emit("admin:new-ngo-registration", {
+        ngoId: ngo._id.toString(),
+        name: ngo.name,
+        email: ngo.email,
+        registration_number: ngo.registration_number,
+        createdAt: ngo.createdAt,
+      });
+
+      // FCM notification to all admins
+      try {
+        const Admin = (await import("../models/adminModel.js")).default;
+        const admins = await Admin.find({
+          fcm_token: { $exists: true, $ne: null },
+        });
+
+        if (admins.length > 0) {
+          const tokens = admins.map((admin) => admin.fcm_token);
+          const message = {
+            notification: {
+              title: "🆕 New NGO Registration",
+              body: `${ngo.name} has registered and is pending verification`,
+            },
+            data: {
+              type: "new_ngo_registration",
+              ngoId: ngo._id.toString(),
+            },
+            tokens: tokens,
+          };
+          const response = await admin
+            .messaging()
+            .sendEachForMulticast(message);
+          console.log(`Admin notifications sent: ${response.successCount}`);
+        }
+      } catch (notifyErr) {
+        console.error("Failed to send admin notifications:", notifyErr);
+      }
+
       res.status(201).json({ status: "success", data: result });
     } else {
       throw new Error("Invalid role");

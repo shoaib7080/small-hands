@@ -9,8 +9,10 @@ import {
   HiViewGrid,
   HiArrowLeft,
   HiUser,
+  HiExclamationCircle,
 } from "react-icons/hi";
 import LoadingOverlay from "./LoadingOverlay";
+import ReportIssueModal from "./ReportIssueModal";
 
 const Navbar = () => {
   const user = (() => {
@@ -26,6 +28,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
 
   const handleLogout = () => {
     setIsLoggingOut(true);
@@ -108,6 +111,14 @@ const Navbar = () => {
                     </div>
                   </Link>
                 )}
+
+                <button
+                  onClick={() => setShowIssueModal(true)}
+                  className="text-text-secondary hover:text-primary-600 p-2 rounded-lg hover:bg-background transition-colors"
+                  title="Report an Issue"
+                >
+                  <HiExclamationCircle className="w-5 h-5" />
+                </button>
 
                 {/* Notification Icon */}
                 <button className="text-text-secondary hover:text-primary-600 p-2 rounded-lg hover:bg-background transition-colors">
@@ -259,6 +270,10 @@ const Navbar = () => {
       )}
 
       <LoadingOverlay isVisible={isLoggingOut} text="Logging out..." />
+      <ReportIssueModal
+        isOpen={showIssueModal}
+        onClose={() => setShowIssueModal(false)}
+      />
     </nav>
   );
 };

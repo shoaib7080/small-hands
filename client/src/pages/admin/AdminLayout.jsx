@@ -8,6 +8,7 @@ import {
   HiLogout,
   HiChevronLeft,
   HiChevronRight,
+  HiFlag,
 } from "react-icons/hi";
 
 const AdminLayout = () => {
@@ -79,6 +80,7 @@ const AdminLayout = () => {
             icon={HiExclamationCircle}
             label="All Reports"
           />
+          <NavItem to="/admin/issues" icon={HiFlag} label="App Issues" />
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
@@ -100,6 +102,7 @@ const AdminLayout = () => {
             {location.pathname === "/admin/reporters" && "Citizen Directory"}
             {location.pathname === "/admin/reports" &&
               "Global Incident Console"}
+            {location.pathname === "/admin/issues" && "App Issues"}
           </h2>
           <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full border border-green-300">
             <span className="h-2 w-2 bg-accent-500 rounded-full animate-pulse"></span>

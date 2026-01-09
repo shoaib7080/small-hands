@@ -2,6 +2,7 @@ import * as authService from "../services/authService.js";
 import NGO from "../models/ngoModel.js";
 import Reporter from "../models/reporterModel.js";
 import Report from "../models/reportModel.js";
+import admin from "../utils/firebaseAdmin.js";
 
 export const addTrustedNGO = async (req, res, next) => {
   //Route to be created
@@ -74,19 +75,53 @@ export const getNGOs = async (req, res, next) => {
 // 3. Verify an NGO
 export const verifyNGO = async (req, res, next) => {
   try {
+    const ngoId = req.params.id;
+
     const ngo = await NGO.findByIdAndUpdate(
-      req.params.id,
-      {
-        verification_status: "verified",
-      },
+      ngoId,
+      { verification_status: "verified" },
       { new: true }
     );
 
     if (!ngo) return res.status(404).json({ message: "NGO not found" });
 
-    res
-      .status(200)
-      .json({ status: "success", message: "NGO Approved", data: ngo });
+    const io = req.app.get("io");
+
+    console.log("Emitting ngo:verification-approved to user_" + ngoId);
+
+    // Notify the specific NGO
+    io.to(`user_${ngoId}`).emit("ngo:verification-approved", {
+      message:
+        "Your NGO has been verified! You can now access the Live Console.",
+      timestamp: new Date(),
+    });
+
+    // FCM notification
+    if (ngo.fcm_token) {
+      try {
+        const admin = (await import("../utils/firebaseAdmin.js")).default;
+        const message = {
+          notification: {
+            title: "NGO Verified",
+            body: "Your organization has been approved! You can now claim cases.",
+          },
+          data: {
+            type: "ngo_verified",
+          },
+          token: ngo.fcm_token,
+        };
+        await admin.messaging().send(message);
+        console.log("FCM notification sent to NGO");
+      } catch (notifErr) {
+        console.error("FCM notification failed:", notifErr);
+      }
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "NGO Approved",
+      data: ngo,
+    });
   } catch (err) {
     next(err);
   }

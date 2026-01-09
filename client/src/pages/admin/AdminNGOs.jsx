@@ -12,6 +12,8 @@ const AdminNGOs = () => {
   const [ngos, setNgos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
+  const [selectedNGO, setSelectedNGO] = useState(null);
+  const [ngoAddress, setNgoAddress] = useState("");
 
   // Form for Manual Creation
   const {
@@ -56,6 +58,49 @@ const AdminNGOs = () => {
       }
     };
     fetchNGOs();
+  }, [activeTab]);
+
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${
+          import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+        }`
+      );
+      const data = await response.json();
+      if (data.results && data.results[0]) {
+        setNgoAddress(data.results[0].formatted_address);
+      } else {
+        setNgoAddress("Address not available");
+      }
+    } catch (err) {
+      setNgoAddress("Address not available");
+    }
+  };
+
+  useEffect(() => {
+    if (selectedNGO?.location.coordinates) {
+      const [lng, lat] = selectedNGO.location.coordinates;
+      reverseGeocode(lat, lng);
+    } else {
+      setNgoAddress("No location data available");
+    }
+  }, [selectedNGO]);
+
+  useEffect(() => {
+    const socket = window.socket;
+    if (!socket || activeTab !== "pending") return;
+
+    const handleNewNGO = (data) => {
+      setNgos((prev) => [data, ...prev]);
+      toast.info(`New NGO registration: ${data.name}`);
+    };
+
+    socket.on("admin:new-ngo-registration", handleNewNGO);
+
+    return () => {
+      socket.off("admin:new-ngo-registration", handleNewNGO);
+    };
   }, [activeTab]);
 
   // Actions
@@ -105,7 +150,7 @@ const AdminNGOs = () => {
               : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          ⏳ Pending Review
+          Pending Review
         </button>
         <button
           onClick={() => setActiveTab("verified")}
@@ -115,7 +160,7 @@ const AdminNGOs = () => {
               : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          ✅ Verified Partners
+          Verified Partners
         </button>
         <button
           onClick={() => setActiveTab("add")}
@@ -125,7 +170,7 @@ const AdminNGOs = () => {
               : "text-gray-500 hover:text-gray-800"
           }`}
         >
-          ➕ Add Trusted NGO
+          Add Trusted NGO
         </button>
       </div>
 
@@ -149,7 +194,15 @@ const AdminNGOs = () => {
                 </thead>
                 <tbody className="divide-y">
                   {ngos.map((ngo) => (
-                    <tr key={ngo._id} className="hover:bg-gray-50">
+                    <tr
+                      key={ngo._id}
+                      onClick={() =>
+                        activeTab === "pending" && setSelectedNGO(ngo)
+                      }
+                      className={`hover:bg-gray-50 ${
+                        activeTab === "pending" ? "cursor-pointer" : ""
+                      }`}
+                    >
                       <td className="p-4">
                         <p className="font-bold text-gray-800">{ngo.name}</p>
                         <p className="text-xs text-gray-500">
@@ -343,6 +396,169 @@ const AdminNGOs = () => {
               >
                 Confirm Location
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* NGO Details Modal */}
+      {selectedNGO && (
+        <div className="fixed inset-0 z-[2000] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-800">
+                NGO Verification Details
+              </h2>
+              <button
+                onClick={() => {
+                  setSelectedNGO(null);
+                  setNgoAddress("");
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <HiX className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Organization Name
+                  </label>
+                  <p className="font-bold text-gray-800">{selectedNGO.name}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Owner Name
+                  </label>
+                  <p className="text-gray-800">{selectedNGO.owner_name}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Registration Number
+                  </label>
+                  <p className="font-mono text-gray-800">
+                    {selectedNGO.registration_number}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Email
+                  </label>
+                  <p className="text-gray-800">{selectedNGO.email}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Phone
+                  </label>
+                  <p className="text-gray-800">{selectedNGO.phone}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Service Radius
+                  </label>
+                  <p className="text-gray-800">
+                    {selectedNGO.service_radius_km} km
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Cases Claimed
+                  </label>
+                  <p className="text-gray-800">{selectedNGO.cases_claimed}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Cases Resolved
+                  </label>
+                  <p className="text-gray-800">{selectedNGO.cases_resolved}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Impact Score
+                  </label>
+                  <p className="text-gray-800">{selectedNGO.impact_score}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 uppercase">
+                    Joined Date
+                  </label>
+                  <p className="text-gray-800">
+                    {new Date(selectedNGO.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500 uppercase">
+                    HQ Location
+                  </label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-gray-800 flex-1">
+                      {ngoAddress || "Loading address..."}
+                    </p>
+                    {selectedNGO.hq_location?.coordinates && (
+                      <button
+                        onClick={() => {
+                          const [lng, lat] =
+                            selectedNGO.hq_location.coordinates;
+                          window.open(
+                            `https://www.google.com/maps?q=${lat},${lng}`,
+                            "_blank"
+                          );
+                        }}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold hover:bg-blue-200 flex items-center gap-1"
+                      >
+                        <HiLocationMarker className="w-4 h-4" />
+                        View on Google Maps
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {selectedNGO.verification_docs &&
+              selectedNGO.verification_docs.length > 0 ? (
+                <div>
+                  <label className="text-sm font-bold text-gray-800 mb-3 block">
+                    Verification Documents
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {selectedNGO.verification_docs.map((doc, idx) => (
+                      <img
+                        key={idx}
+                        src={doc}
+                        alt={`Verification ${idx + 1}`}
+                        className="w-full h-48 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90"
+                        onClick={() => window.open(doc, "_blank")}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">
+                  No verification documents provided.
+                </p>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <button
+                  onClick={() => {
+                    handleDelete(selectedNGO._id);
+                    setSelectedNGO(null);
+                  }}
+                  className="px-4 py-2 bg-red-100 text-red-700 rounded font-bold hover:bg-red-200"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => {
+                    handleVerify(selectedNGO._id);
+                    setSelectedNGO(null);
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded font-bold hover:bg-green-700"
+                >
+                  Approve NGO
+                </button>
+              </div>
             </div>
           </div>
         </div>
