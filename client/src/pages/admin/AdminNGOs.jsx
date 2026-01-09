@@ -14,6 +14,8 @@ const AdminNGOs = () => {
   const [historyTarget, setHistoryTarget] = useState(null);
   const [selectedNGO, setSelectedNGO] = useState(null);
   const [ngoAddress, setNgoAddress] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
 
   // Form for Manual Creation
   const {
@@ -49,7 +51,10 @@ const AdminNGOs = () => {
     const fetchNGOs = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get(`/admin/ngos?status=${activeTab}`);
+        const params = new URLSearchParams({ status: activeTab });
+        if (searchTerm) params.append("search", searchTerm);
+
+        const { data } = await api.get(`/admin/ngos?${params}`);
         setNgos(data.data);
       } catch (err) {
         toast.error("Failed to fetch list");
@@ -58,7 +63,7 @@ const AdminNGOs = () => {
       }
     };
     fetchNGOs();
-  }, [activeTab]);
+  }, [activeTab, searchTerm]);
 
   const reverseGeocode = async (lat, lng) => {
     try {
@@ -138,6 +143,14 @@ const AdminNGOs = () => {
     }
   };
 
+  const sortedNgos = [...ngos].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "date") return new Date(b.createdAt) - new Date(a.createdAt);
+    if (sortBy === "impact")
+      return (b.impact_score || 0) - (a.impact_score || 0);
+    return 0;
+  });
+
   return (
     <div className="bg-white rounded-xl shadow-sm min-h-[500px]">
       {/* TABS HEADER */}
@@ -177,75 +190,96 @@ const AdminNGOs = () => {
       <div className="p-6">
         {/* VIEW 1 & 2: TABLES (Pending/Verified) */}
         {activeTab !== "add" && (
-          <div className="overflow-x-auto">
-            {loading ? (
-              <p>Loading...</p>
-            ) : ngos.length === 0 ? (
-              <p className="text-gray-500 italic">No records found.</p>
-            ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
-                    <th className="p-4">Organization</th>
-                    <th className="p-4">License / Reg. No</th>
-                    <th className="p-4">Contact</th>
-                    <th className="p-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {ngos.map((ngo) => (
-                    <tr
-                      key={ngo._id}
-                      onClick={() =>
-                        activeTab === "pending" && setSelectedNGO(ngo)
-                      }
-                      className={`hover:bg-gray-50 ${
-                        activeTab === "pending" ? "cursor-pointer" : ""
-                      }`}
-                    >
-                      <td className="p-4">
-                        <p className="font-bold text-gray-800">{ngo.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Joined: {new Date(ngo.createdAt).toLocaleDateString()}
-                        </p>
-                      </td>
-                      <td className="p-4 font-mono text-sm">
-                        {ngo.registration_number}
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm">{ngo.email}</p>
-                        <p className="text-xs text-gray-500">{ngo.phone}</p>
-                      </td>
-                      <td className="p-4 text-right space-x-2">
-                        {activeTab === "pending" && (
-                          <button
-                            onClick={() => handleVerify(ngo._id)}
-                            className="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold hover:bg-green-200"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {activeTab === "verified" && (
-                          <button
-                            onClick={() => setHistoryTarget(ngo._id)}
-                            className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 ml-2"
-                          >
-                            View History
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(ngo._id)}
-                          className="bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-bold hover:bg-red-200"
-                        >
-                          {activeTab === "pending" ? "Reject" : "Revoke"}
-                        </button>
-                      </td>
+          <>
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="🔍 Search by name or email..."
+                className="w-full border p-2 rounded-lg"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border p-2 rounded-lg"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="date">Sort by Join Date</option>
+                <option value="impact">Sort by Impact Score</option>
+              </select>
+            </div>
+            <div className="overflow-x-auto">
+              {loading ? (
+                <p>Loading...</p>
+              ) : ngos.length === 0 ? (
+                <p className="text-gray-500 italic">No records found.</p>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                      <th className="p-4">Organization</th>
+                      <th className="p-4">License / Reg. No</th>
+                      <th className="p-4">Contact</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  </thead>
+                  <tbody className="divide-y">
+                    {sortedNgos.map((ngo) => (
+                      <tr
+                        key={ngo._id}
+                        onClick={() =>
+                          activeTab === "pending" && setSelectedNGO(ngo)
+                        }
+                        className={`hover:bg-gray-50 ${
+                          activeTab === "pending" ? "cursor-pointer" : ""
+                        }`}
+                      >
+                        <td className="p-4">
+                          <p className="font-bold text-gray-800">{ngo.name}</p>
+                          <p className="text-xs text-gray-500">
+                            Joined:{" "}
+                            {new Date(ngo.createdAt).toLocaleDateString()}
+                          </p>
+                        </td>
+                        <td className="p-4 font-mono text-sm">
+                          {ngo.registration_number}
+                        </td>
+                        <td className="p-4">
+                          <p className="text-sm">{ngo.email}</p>
+                          <p className="text-xs text-gray-500">{ngo.phone}</p>
+                        </td>
+                        <td className="p-4 text-right space-x-2">
+                          {activeTab === "pending" && (
+                            <button
+                              onClick={() => handleVerify(ngo._id)}
+                              className="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-bold hover:bg-green-200"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {activeTab === "verified" && (
+                            <button
+                              onClick={() => setHistoryTarget(ngo._id)}
+                              className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-bold hover:bg-blue-200 ml-2"
+                            >
+                              View History
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDelete(ngo._id)}
+                            className="bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-bold hover:bg-red-200"
+                          >
+                            {activeTab === "pending" ? "Reject" : "Revoke"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
         )}
 
         {/* VIEW 3: MANUAL CREATION FORM */}

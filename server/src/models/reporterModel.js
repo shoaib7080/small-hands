@@ -19,6 +19,7 @@ const reporterSchema = new mongoose.Schema(
     email: { type: String, unique: true, sparse: true },
     avatar: { type: String, default: "default.jpg" },
     isEmailVerified: { type: Boolean, default: false },
+    isBanned: { type: Boolean, default: false },
     role: { type: String, default: "reporter", immutable: true },
 
     // Gamification

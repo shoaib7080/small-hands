@@ -243,6 +243,10 @@ const NGOActiveCases = () => {
             safety of our network, an Admin must verify your license documents
             before you can access the Live Console.
           </p>
+          <p className="text-text-secondary text-lg mb-6">
+            In the mean time, please update your profile with supporting
+            documents and other important info.
+          </p>
 
           <div className="bg-primary-50 p-4 rounded-lg text-left mb-6 border border-primary-200">
             <p className="font-bold text-primary-700 text-sm uppercase mb-1">

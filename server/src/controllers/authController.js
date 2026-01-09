@@ -31,12 +31,19 @@ export const googleAuth = async (req, res, next) => {
 
     if (user) {
       // CASE A: User exists
+      // Check if banned
+      if (user.isBanned) {
+        return res.status(403).json({
+          status: "error",
+          message: "Your account has been banned. Please contact support.",
+        });
+      }
       // Optional: Update their avatar if they changed it on Google
       if (!user.googleId) {
         // Link Google to existing email account
         user.googleId = sub;
         user.authProvider = "google";
-        user.isEmailVerified = true; // Trust Google
+        user.isEmailVerified = true;
         await user.save({ validateBeforeSave: false });
       }
     } else {

@@ -60,9 +60,16 @@ export const getDashboardStats = async (req, res, next) => {
 // 2. Get NGOs (Filter by Status)
 export const getNGOs = async (req, res, next) => {
   try {
-    const { status } = req.query; // ?status=pending or ?status=verified
-    const query = status ? { verification_status: status } : {};
+    const { status, search } = req.query;
+    const query = {};
 
+    if (status) query.verification_status = status;
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
     const ngos = await NGO.find(query).select("-password");
     res
       .status(200)
@@ -140,6 +147,16 @@ export const deleteNGO = async (req, res, next) => {
 // 5. Get All Reporters
 export const getReporters = async (req, res, next) => {
   try {
+    const { search } = req.query;
+    const query = {};
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+      ];
+    }
+
     const reporters = await Reporter.find().select("-password");
     res
       .status(200)
@@ -162,11 +179,14 @@ export const deleteReporter = async (req, res, next) => {
 // 7. Get All Reports (For Moderation)
 export const getAllReports = async (req, res, next) => {
   try {
-    const { reporterId, ngoId } = req.query;
+    const { reporterId, ngoId, status, type, severity } = req.query;
 
     let filter = {};
     if (reporterId) filter.reporter_id = reporterId;
     if (ngoId) filter.claimed_by = ngoId;
+    if (status) filter.status = status;
+    if (type) filter.type = type;
+    if (severity) filter.severity = severity;
 
     const reports = await Report.find(filter)
       .populate("reporter_id", "name phone")
@@ -186,6 +206,28 @@ export const deleteReport = async (req, res, next) => {
   try {
     await Report.findByIdAndDelete(req.params.id);
     res.status(204).json({ status: "success", data: null });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const banReporter = async (req, res, next) => {
+  try {
+    const reporter = await Reporter.findByIdAndUpdate(
+      req.params.id,
+      { isBanned: true },
+      { new: true }
+    );
+
+    if (!reporter) {
+      return res.status(404).json({ message: "Reporter not found" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "User banned successfully",
+      data: reporter,
+    });
   } catch (err) {
     next(err);
   }

@@ -34,6 +34,12 @@ export const registerReporter = async (data) => {
     }
   }
 
+  // Check if email is banned
+  const bannedUser = await Reporter.findOne({ email, isBanned: true });
+  if (bannedUser) {
+    throw new Error("Your account has been banned. Please contact support.");
+  }
+
   // Generate OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
@@ -228,6 +234,11 @@ export const loginUser = async (identifier, password) => {
 
   // If absolutely no one found
   if (!user) throw new Error("User not found");
+
+  // Check if reporter is banned
+  if (role === "reporter" && user.isBanned) {
+    throw new Error("Your account has been banned. Please contact support.");
+  }
 
   // 5. Verify Password
   const isMatch = await bcrypt.compare(password, user.password);

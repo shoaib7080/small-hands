@@ -24,5 +24,6 @@ router.delete("/reporters/:id", adminController.deleteReporter);
 // Report Moderation
 router.get("/reports", adminController.getAllReports);
 router.delete("/reports/:id", adminController.deleteReport);
+router.patch("/reporters/:id/ban", adminController.banReporter);
 
 export default router;
