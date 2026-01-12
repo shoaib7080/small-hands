@@ -102,8 +102,8 @@ const ReporterDashboard = () => {
             <HiPlus className="w-5 h-5" />
             Report someone in need
           </Link>
-          <span className="text-xs text-gray-800">
-            Your report is shared only with verified NGOs nearby.
+          <span className="text-xs text-text-muted">
+            Your personal details are never shared.
           </span>
         </div>
       </div>

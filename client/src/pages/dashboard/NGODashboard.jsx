@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   HiUsers,
   HiStar,
@@ -22,6 +22,7 @@ const NGODashboard = () => {
   const [recentCases, setRecentCases] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewingSuccess, setViewingSuccess] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -84,9 +85,10 @@ const NGODashboard = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <StatCard
-          title="Lives Impacted"
+          title="Lives Impacted | Click to View"
           value={user.cases_resolved || 0}
           color="bg-success-500"
+          onClick={() => navigate("/dashboard/ngo/history")}
         />
         <StatCard
           title="Impact Score"

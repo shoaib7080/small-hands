@@ -442,6 +442,7 @@ const NGOActiveCases = () => {
           zoom={userZoom || 13}
           enableSearch={true}
           className="h-full w-full"
+          enableLocate={mobileView !== "map"}
           key={mobileView}
           ngoHQ={ngoLocation}
         >
@@ -528,7 +529,8 @@ const NGOActiveCases = () => {
       </div>
 
       {/* MOBILE TOGGLE BUTTON */}
-      <div className="md:hidden absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1000]">
+      <div className="md:hidden fixed justify-around w-full bottom-6 left-1/2 transform -translate-x-1/2 z-[1000] flex gap-6">
+        {mobileView === "map" && <button className="w-[48px]"></button>}
         <button
           onClick={() => setMobileView(mobileView === "list" ? "map" : "list")}
           className="bg-text-primary text-surface px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2"
@@ -545,6 +547,26 @@ const NGOActiveCases = () => {
             </>
           )}
         </button>
+        {mobileView === "map" && (
+          <button
+            onClick={() => {
+              if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                  (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setMapCenter([latitude, longitude]);
+                    setUserZoom(18);
+                  },
+                  (error) => toast.error("Location access denied"),
+                  { enableHighAccuracy: false, timeout: 10000 }
+                );
+              }
+            }}
+            className="bg-white text-primary-600 p-3 rounded-full shadow-2xl"
+          >
+            <HiLocationMarker className="w-6 h-6" />
+          </button>
+        )}
       </div>
 
       {/* VIEW DETAILS MODAL */}
@@ -671,7 +693,7 @@ const NGOActiveCases = () => {
                         src={img}
                         alt="Evidence"
                         className="w-full h-32 object-cover rounded-lg border border-border hover:scale-105 transition"
-                        onClick={() => window.open(doc, "_blank")}
+                        onClick={() => window.open(img, "_blank")}
                       />
                     ))}
                   </div>
@@ -742,7 +764,7 @@ const NGOActiveCases = () => {
                 required
               />
               <div className="flex flex-col gap-2">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => {
                     setResolveModalId(null);
@@ -751,7 +773,7 @@ const NGOActiveCases = () => {
                   className="w-full py-2 bg-orange-100 text-orange-700 rounded font-bold hover:bg-orange-200 transition-colors"
                 >
                   Flag as False
-                </button>
+                </button> */}
                 <div className="flex gap-2">
                   <button
                     type="button"

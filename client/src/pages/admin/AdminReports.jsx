@@ -1,15 +1,29 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { HiX, HiLocationMarker, HiSearch } from "react-icons/hi";
 import api from "../../services/api";
+import { reverseGeocode } from "../../utils/geocode";
+import ReportDetailsModal from "../../components/modals/ReportDetailsModal";
 
 const AdminReports = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [filters, setFilters] = useState({
     status: "",
     type: "",
     severity: "",
+    flagged: "",
+    search: "",
   });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [reportAddress, setReportAddress] = useState("");
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -18,9 +32,18 @@ const AdminReports = () => {
         if (filters.status) params.append("status", filters.status);
         if (filters.type) params.append("type", filters.type);
         if (filters.severity) params.append("severity", filters.severity);
+        if (filters.flagged) params.append("flagged", filters.flagged);
+        if (filters.search) params.append("search", filters.search);
+        params.append("page", pagination.page);
+        params.append("limit", pagination.limit);
 
         const { data } = await api.get(`/admin/reports?${params}`);
         setReports(data.data);
+        setPagination((prev) => ({
+          ...prev,
+          total: data.total,
+          totalPages: data.totalPages,
+        }));
       } catch (err) {
         toast.error("Failed to load reports");
       } finally {
@@ -28,7 +51,14 @@ const AdminReports = () => {
       }
     };
     fetchReports();
-  }, [filters]);
+  }, [filters, pagination.page]);
+
+  useEffect(() => {
+    if (selectedReport?.location?.coordinates) {
+      const [lng, lat] = selectedReport.location.coordinates;
+      reverseGeocode(lat, lng).then(setReportAddress);
+    }
+  }, [selectedReport]);
 
   const handleUnflag = async (id) => {
     try {
@@ -55,6 +85,12 @@ const AdminReports = () => {
     }
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    setFilters({ ...filters, search: searchInput });
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
   const StatusBadge = ({ status }) => {
     const colors = {
       Open: "bg-red-100 text-red-700",
@@ -74,11 +110,33 @@ const AdminReports = () => {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white p-4 rounded-xl shadow-sm">
+      <div className="bg-white p-4 rounded-xl shadow-sm space-y-4">
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="flex-1 relative">
+            <HiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search by name, description or contact info..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+          >
+            Search
+          </button>
+        </form>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <select
             value={filters.status}
-            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            onChange={(e) => {
+              setFilters({ ...filters, status: e.target.value });
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
             className="border p-2 rounded-lg"
           >
             <option value="">All Status</option>
@@ -88,7 +146,10 @@ const AdminReports = () => {
           </select>
           <select
             value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            onChange={(e) => {
+              setFilters({ ...filters, type: e.target.value });
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
             className="border p-2 rounded-lg"
           >
             <option value="">All Types</option>
@@ -100,9 +161,10 @@ const AdminReports = () => {
           </select>
           <select
             value={filters.severity}
-            onChange={(e) =>
-              setFilters({ ...filters, severity: e.target.value })
-            }
+            onChange={(e) => {
+              setFilters({ ...filters, severity: e.target.value });
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
             className="border p-2 rounded-lg"
           >
             <option value="">All Severity</option>
@@ -110,6 +172,17 @@ const AdminReports = () => {
             <option value="Medium">Medium</option>
             <option value="High">High</option>
             <option value="Critical">Critical</option>
+          </select>
+          <select
+            value={filters.flagged}
+            onChange={(e) => {
+              setFilters({ ...filters, flagged: e.target.value });
+              setPagination((prev) => ({ ...prev, page: 1 }));
+            }}
+            className="border p-2 rounded-lg"
+          >
+            <option value="">All Reports</option>
+            <option value="true">Flagged Only</option>
           </select>
         </div>
       </div>
@@ -133,12 +206,23 @@ const AdminReports = () => {
               </thead>
               <tbody className="divide-y">
                 {reports.map((report) => (
-                  <tr key={report._id} className="hover:bg-gray-50">
+                  <tr
+                    key={report._id}
+                    onClick={() => setSelectedReport(report)}
+                    className={`hover:bg-gray-50 cursor-pointer ${
+                      report.isFlagged ? "bg-red-50" : ""
+                    }`}
+                  >
                     <td className="p-4 font-bold text-gray-800">
                       {report.type}
                     </td>
                     <td className="p-4 max-w-xs text-sm text-gray-600 truncate">
                       {report.description}
+                      {report.isFlagged && (
+                        <p className="text-xs text-red-600 mt-1">
+                          ⚠️ Flagged: {report.flagReason}
+                        </p>
+                      )}
                     </td>
                     <td className="p-4 text-sm">
                       <p className="font-medium">
@@ -159,14 +243,7 @@ const AdminReports = () => {
                         >
                           Unflag
                         </button>
-                      ) : (
-                        <button
-                          // onClick={() => setFlagModal(report._id)}
-                          className="text-orange-500 hover:text-orange-700 text-sm font-bold"
-                        >
-                          Flag
-                        </button>
-                      )}
+                      ) : null}
                       <button
                         onClick={() => handleDelete(report._id)}
                         className="text-red-500 hover:text-red-700 text-sm font-bold"
@@ -220,9 +297,56 @@ const AdminReports = () => {
                 No reports found.
               </div>
             )}
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="p-4 border-t flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Showing {reports.length} of {pagination.total} reports
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.max(1, prev.page - 1),
+                      }))
+                    }
+                    disabled={pagination.page === 1}
+                    className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1 text-sm">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.min(prev.totalPages, prev.page + 1),
+                      }))
+                    }
+                    disabled={pagination.page === pagination.totalPages}
+                    className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
+      {/* Report Details Modal */}
+      <ReportDetailsModal
+        report={selectedReport}
+        onClose={() => setSelectedReport(null)}
+        onUnflag={(id) => {
+          handleUnflag(id);
+          setSelectedReport(null);
+        }}
+        onDelete={handleDelete}
+      />
     </div>
   );
 };

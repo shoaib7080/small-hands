@@ -29,6 +29,7 @@ import { toast } from "react-toastify";
 import NGOProfile from "./pages/profile/NGOProfile";
 import IssuesPage from "./pages/issues/IssuePage";
 import PublicRoute from "./components/common/PublicRoute";
+import CaseHistory from "./pages/dashboard/CaseHistory";
 
 function App() {
   const listenerRef = useRef(null);
@@ -211,6 +212,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={["ngo"]} />}>
           <Route path="/dashboard/ngo" element={<NGODashboard />} />
           <Route path="/dashboard/ngo/live" element={<NGOActiveCases />} />
+          <Route path="/dashboard/ngo/history" element={<CaseHistory />} />
         </Route>
 
         <Route

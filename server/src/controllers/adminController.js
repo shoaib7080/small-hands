@@ -179,7 +179,17 @@ export const deleteReporter = async (req, res, next) => {
 // 7. Get All Reports (For Moderation)
 export const getAllReports = async (req, res, next) => {
   try {
-    const { reporterId, ngoId, status, type, severity } = req.query;
+    const {
+      reporterId,
+      ngoId,
+      status,
+      type,
+      severity,
+      search,
+      page = 1,
+      limit = 10,
+      flagged,
+    } = req.query;
 
     let filter = {};
     if (reporterId) filter.reporter_id = reporterId;
@@ -187,15 +197,41 @@ export const getAllReports = async (req, res, next) => {
     if (status) filter.status = status;
     if (type) filter.type = type;
     if (severity) filter.severity = severity;
+    if (flagged) filter.isFlagged = flagged === "true";
+
+    // Search in description or contact_info
+    if (search) {
+      const matchingReporters = await Reporter.find({
+        name: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      filter.$or = [
+        { description: { $regex: search, $options: "i" } },
+        { contact_info: { $regex: search, $options: "i" } },
+        { reporter_id: { $in: matchingReporters.map((r) => r._id) } },
+      ];
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Report.countDocuments(filter);
 
     const reports = await Report.find(filter)
       .populate("reporter_id", "name phone")
       .populate("claimed_by", "name")
-      .sort({ createdAt: -1 }); // Newest first
+      .populate("flaggedBy", "name")
+      .sort({ createdAt: -1 }) // Newest first
+      .skip(skip)
+      .limit(parseInt(limit));
 
-    res
-      .status(200)
-      .json({ status: "success", results: reports.length, data: reports });
+    res.status(200).json({
+      status: "success",
+      results: reports.length,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+      data: reports,
+    });
   } catch (err) {
     next(err);
   }

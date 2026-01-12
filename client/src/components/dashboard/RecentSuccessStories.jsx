@@ -205,6 +205,9 @@ const RecentSuccessStories = () => {
                             src={img}
                             alt="Report Evidence"
                             className="w-full h-40 sm:h-48 object-cover rounded-lg border border-border shadow-sm"
+                            onClick={() =>
+                              window.open(img, "_blank", "noopener,noreferrer")
+                            }
                           />
                         ))
                       ) : (
@@ -230,6 +233,9 @@ const RecentSuccessStories = () => {
                             src={img}
                             alt="Resolution Proof"
                             className="w-full h-40 sm:h-48 object-cover rounded-lg border border-border shadow-sm"
+                            onClick={() =>
+                              window.open(img, "_blank", "noopener, noreferrer")
+                            }
                           />
                         ))
                       ) : (

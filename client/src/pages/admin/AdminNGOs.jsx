@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { HiLocationMarker, HiX } from "react-icons/hi";
 import api from "../../services/api";
+import { reverseGeocode } from "../../utils/geocode";
 import Input from "../../components/common/Input";
 import ReportHistoryModal from "./ReportHistoryModal";
 import MapContainer, { MapMarker } from "../../components/map/MapContainer";
@@ -65,28 +66,10 @@ const AdminNGOs = () => {
     fetchNGOs();
   }, [activeTab, searchTerm]);
 
-  const reverseGeocode = async (lat, lng) => {
-    try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${
-          import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-        }`
-      );
-      const data = await response.json();
-      if (data.results && data.results[0]) {
-        setNgoAddress(data.results[0].formatted_address);
-      } else {
-        setNgoAddress("Address not available");
-      }
-    } catch (err) {
-      setNgoAddress("Address not available");
-    }
-  };
-
   useEffect(() => {
     if (selectedNGO?.location.coordinates) {
       const [lng, lat] = selectedNGO.location.coordinates;
-      reverseGeocode(lat, lng);
+      reverseGeocode(lat, lng).then(setNgoAddress);
     } else {
       setNgoAddress("No location data available");
     }

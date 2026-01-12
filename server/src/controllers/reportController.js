@@ -323,16 +323,37 @@ export const getMyCases = async (req, res, next) => {
   try {
     const reports = await Report.find({
       claimed_by: req.user.id,
+      status: { $ne: "Resolved" },
       isFlagged: false,
     })
       .populate("reporter_id", "name phone")
-      .sort({ status: 1, updatedAt: -1 }); // 'Claimed' comes before 'Resolved'
+      .sort({ updatedAt: -1 }); // 'Claimed' comes before 'Resolved'
 
     res
       .status(200)
       .json({ status: "success", count: reports.length, data: reports });
   } catch (err) {
     next(err);
+  }
+};
+
+export const getMyResolvedCases = async (req, res, next) => {
+  try {
+    const reports = await Report.find({
+      claimed_by: req.user.id,
+      status: "Resolved",
+      isFlagged: false,
+    })
+      .populate("reporter_id", "name phone")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      status: "success",
+      count: reports.length,
+      data: reports,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
