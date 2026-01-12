@@ -232,3 +232,53 @@ export const banReporter = async (req, res, next) => {
     next(err);
   }
 };
+
+export const flagReport = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      {
+        isFlagged: true,
+        flagReason: reason || "Marked as false report",
+        flaggedBy: req.user.id,
+      },
+      { new: true }
+    );
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Report flagged successfully",
+      data: report,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unflagReport = async (req, res, next) => {
+  try {
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      { isFlagged: false, flagReason: "", flaggedBy: null },
+      { new: true }
+    );
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Report unflagged successfully",
+      data: report,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

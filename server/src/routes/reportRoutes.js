@@ -53,6 +53,15 @@ router.get(
   protect,
   reportController.getRecentResolvedCases
 );
+router.patch(
+  "/:id/flag",
+  protect,
+  restrictTo("ngo"),
+  reportController.flagReport
+);
+
+// recent-active
+// router.get("/recent-active", protect, reportController.getRecentActiveCases);
 
 // Public NGO profile
 router.get("/ngo/:id", reportController.getNGOProfile);

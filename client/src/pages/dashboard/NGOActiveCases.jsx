@@ -22,6 +22,8 @@ const NGOActiveCases = () => {
   const [userZoom, setUserZoom] = useState(null);
   const [verificationStatus, setVerificationStatus] = useState(null);
   const [checkingVerification, setCheckingVerification] = useState(true);
+  const [flagModal, setFlagModal] = useState(null);
+  const [flagReason, setFlagReason] = useState("");
 
   // Overlay Loading State
   const [isLoadingOverlay, setIsLoadingOverlay] = useState(false);
@@ -222,6 +224,24 @@ const NGOActiveCases = () => {
   const openGoogleMaps = (lat, lng) => {
     const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
     window.open(url, "_blank");
+  };
+
+  const handleFlag = async () => {
+    if (!flagReason.trim()) return toast.error("Please provide a reason");
+
+    try {
+      setIsLoadingOverlay(true);
+      setOverlayText("Flagging Report...");
+      await api.patch(`/reports/${flagModal}/flag`, { reason: flagReason });
+      toast.success("Report flagged as false");
+      setReports((prev) => prev.filter((r) => r._id !== flagModal));
+      setFlagModal(null);
+      setFlagReason("");
+    } catch (err) {
+      toast.error("Failed to flag report");
+    } finally {
+      setIsLoadingOverlay(false);
+    }
   };
 
   const displayedReports = reports;
@@ -661,6 +681,16 @@ const NGOActiveCases = () => {
 
             {/* Footer Actions */}
             <div className="p-4 border-t border-border bg-background flex gap-3">
+              <button
+                onClick={() => {
+                  setViewingReport(null);
+                  setFlagModal(viewingReport._id);
+                }}
+                className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg font-bold hover:bg-orange-200"
+              >
+                Flag as False
+              </button>
+
               {viewingReport.claimed_by &&
               (viewingReport.claimed_by._id === user.id ||
                 viewingReport.claimed_by === user.id) ? (
@@ -671,7 +701,7 @@ const NGOActiveCases = () => {
                   }}
                   className="w-full bg-success-500 hover:bg-success-600 text-white py-3 rounded-lg font-bold shadow transition-colors"
                 >
-                  ✅ Mark as Resolved
+                  Mark as Resolved
                 </button>
               ) : viewingReport.status === "Open" ? (
                 <button
@@ -681,7 +711,7 @@ const NGOActiveCases = () => {
                   }}
                   className="w-full bg-error-500 hover:bg-error-600 text-white py-3 rounded-lg font-bold shadow transition-colors"
                 >
-                  ✋ Claim This Case
+                  Claim This Case
                 </button>
               ) : (
                 <div className="w-full text-center py-3 text-text-muted font-bold bg-background rounded-lg border border-border">
@@ -711,33 +741,79 @@ const NGOActiveCases = () => {
                 className="w-full border border-border bg-background text-text-primary p-2 rounded mb-4 text-sm"
                 required
               />
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => {
                     setResolveModalId(null);
-                    setProofFile(null);
+                    setFlagModal(resolveModalId);
                   }}
-                  className="flex-1 py-2 text-text-secondary hover:bg-background rounded border border-border transition-colors"
+                  className="w-full py-2 bg-orange-100 text-orange-700 rounded font-bold hover:bg-orange-200 transition-colors"
                 >
-                  Cancel
+                  Flag as False
                 </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="flex-1 py-2 bg-success-500 hover:bg-success-600 text-white rounded font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {uploading ? (
-                    "Uploading..."
-                  ) : (
-                    <>
-                      <HiUpload className="w-4 h-4" />
-                      Confirm
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResolveModalId(null);
+                      setProofFile(null);
+                    }}
+                    className="flex-1 py-2 text-text-secondary hover:bg-background rounded border border-border transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="flex-1 py-2 bg-success-500 hover:bg-success-600 text-white rounded font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploading ? (
+                      "Uploading..."
+                    ) : (
+                      <>
+                        <HiUpload className="w-4 h-4" />
+                        Confirm
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {flagModal && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-bold mb-4">Flag Report as False</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              This report will be hidden from all NGOs and sent to admin review.
+            </p>
+            <textarea
+              value={flagReason}
+              onChange={(e) => setFlagReason(e.target.value)}
+              placeholder="Reason for flagging (e.g., duplicate, fake, resolved already)..."
+              className="w-full border p-2 rounded-lg h-24 mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setFlagModal(null);
+                  setFlagReason("");
+                }}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFlag}
+                className="px-4 py-2 bg-orange-500 text-white rounded-lg font-bold hover:bg-orange-600"
+              >
+                Flag Report
+              </button>
+            </div>
           </div>
         </div>
       )}

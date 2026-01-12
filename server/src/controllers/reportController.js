@@ -105,13 +105,11 @@ export const createReport = async (req, res, next) => {
       });
     }
 
-    res
-      .status(201)
-      .json({
-        status: "success",
-        data: report,
-        ngosNotified: nearbyNGOs.length,
-      });
+    res.status(201).json({
+      status: "success",
+      data: report,
+      ngosNotified: nearbyNGOs.length,
+    });
   } catch (err) {
     next(err);
   }
@@ -145,6 +143,7 @@ export const getNearbyReports = async (req, res, next) => {
         },
       },
       status: "Open", // Only show open cases
+      isFlagged: false,
     }).populate("reporter_id", "name phone"); // Optional: Show reporter details
 
     res
@@ -291,12 +290,40 @@ export const resolveReport = async (req, res, next) => {
   }
 };
 
+export const flagReport = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+
+    const report = await Report.findByIdAndUpdate(
+      req.params.id,
+      {
+        isFlagged: true,
+        flagReason: reason || "Marked as false report",
+        flaggedBy: req.user.id,
+      },
+      { new: true }
+    );
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Report flagged successfully",
+      data: report,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // 5. Get Cases Claimed by the Logged-in NGO
 export const getMyCases = async (req, res, next) => {
   try {
     const reports = await Report.find({
       claimed_by: req.user.id,
-      // Include all statuses (Claimed & Resolved)
+      isFlagged: false,
     })
       .populate("reporter_id", "name phone")
       .sort({ status: 1, updatedAt: -1 }); // 'Claimed' comes before 'Resolved'

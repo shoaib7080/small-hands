@@ -20,10 +20,11 @@ router.delete("/ngos/:id", adminController.deleteNGO);
 // Reporter Management
 router.get("/reporters", adminController.getReporters);
 router.delete("/reporters/:id", adminController.deleteReporter);
+router.patch("/reporters/:id/ban", adminController.banReporter);
 
 // Report Moderation
 router.get("/reports", adminController.getAllReports);
 router.delete("/reports/:id", adminController.deleteReport);
-router.patch("/reporters/:id/ban", adminController.banReporter);
+router.patch("/reports/:id/unflag", adminController.unflagReport);
 
 export default router;

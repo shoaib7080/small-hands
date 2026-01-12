@@ -30,6 +30,20 @@ const AdminReports = () => {
     fetchReports();
   }, [filters]);
 
+  const handleUnflag = async (id) => {
+    try {
+      await api.patch(`/admin/reports/${id}/unflag`);
+      toast.success("Report unflagged");
+      setReports((prev) =>
+        prev.map((r) =>
+          r._id === id ? { ...r, isFlagged: false, flagReason: "" } : r
+        )
+      );
+    } catch (err) {
+      toast.error("Action failed");
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this report permanently?")) return;
     try {
@@ -137,7 +151,22 @@ const AdminReports = () => {
                     <td className="p-4">
                       <StatusBadge status={report.status} />
                     </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right space-x-2">
+                      {report.isFlagged ? (
+                        <button
+                          onClick={() => handleUnflag(report._id)}
+                          className="text-green-500 hover:text-green-700 text-sm font-bold"
+                        >
+                          Unflag
+                        </button>
+                      ) : (
+                        <button
+                          // onClick={() => setFlagModal(report._id)}
+                          className="text-orange-500 hover:text-orange-700 text-sm font-bold"
+                        >
+                          Flag
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(report._id)}
                         className="text-red-500 hover:text-red-700 text-sm font-bold"

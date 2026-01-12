@@ -42,6 +42,10 @@ const reportSchema = new mongoose.Schema(
       type: { type: String, default: "Point" },
       coordinates: { type: [Number], required: true }, // [Longitude, Latitude]
     },
+
+    isFlagged: { type: Boolean, default: false },
+    flagReason: { type: String, default: "" },
+    flaggedBy: { type: mongoose.Schema.Types.ObjectId, ref: "NGO" },
   },
   { timestamps: true }
 );
