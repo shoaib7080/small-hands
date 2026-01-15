@@ -24,6 +24,11 @@ const ngoSchema = new mongoose.Schema(
       type: { type: String, default: "Point" },
       coordinates: { type: [Number], required: true }, // [Longitude, Latitude]
     },
+    hq_address: {
+      locality: String,
+      city: String,
+      fullAddress: String,
+    },
     service_radius_km: { type: Number, default: 10 }, // How far they operate
 
     // Public Profile

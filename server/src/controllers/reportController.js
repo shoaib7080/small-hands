@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import Reporter from "../models/reporterModel.js";
 import NGO from "../models/ngoModel.js";
 import admin from "../utils/firebaseAdmin.js";
+import { reverseGeocode } from "../utils/geocode.js";
+import { createNotification } from "../services/notificationService.js";
 
 // Helper function to calculate distance between two points in km
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -30,6 +32,8 @@ export const createReport = async (req, res, next) => {
       imageUrls = req.files.map((file) => file.path); // Cloudinary stores the URL in 'path'
     }
 
+    const address = await reverseGeocode(latitude, longitude);
+
     const report = await Report.create({
       type,
       description,
@@ -38,6 +42,7 @@ export const createReport = async (req, res, next) => {
       images: imageUrls,
       reporter_id: req.user.id, // Comes from authMiddleware
       location: { type: "Point", coordinates: [longitude, latitude] },
+      address: address || undefined,
     });
 
     // --- NOTIFICATION LOGIC ---
@@ -63,29 +68,50 @@ export const createReport = async (req, res, next) => {
       console.log(`[DEBUG] Found ${nearbyNGOs.length} NGOs nearby`);
 
       if (nearbyNGOs.length > 0) {
-        const tokens = nearbyNGOs.map((ngo) => ngo.fcmToken);
-        console.log(`[DEBUG] Sending to tokens:`, tokens);
+        // Remove duplicates by NGO ID
+        const uniqueNGOs = Array.from(
+          new Map(nearbyNGOs.map((ngo) => [ngo._id.toString(), ngo])).values()
+        );
 
-        // Firebase Multicast Message
-        const message = {
-          notification: {
+        const tokens = uniqueNGOs.map((ngo) => ngo.fcmToken);
+        console.log(`[DEBUG] Sending to ${uniqueNGOs.length} unique NGOs`);
+
+        // Send Firebase notifications
+        try {
+          const message = {
+            notification: {
+              title: "New Alert in Your Area!",
+              body: `A new ${severity} severity report requires attention.`,
+            },
+            data: {
+              reportId: report._id.toString(),
+              type: "new_report",
+            },
+            tokens: tokens,
+          };
+          const response = await admin
+            .messaging()
+            .sendEachForMulticast(message);
+          console.log("Firebase sent:", response.successCount);
+          console.log("Firebase failures:", response.failureCount);
+        } catch (firebaseErr) {
+          console.error("Firebase error:", firebaseErr);
+        }
+
+        // Create database notifications for each NGO
+        for (const ngo of uniqueNGOs) {
+          await createNotification({
+            userId: ngo._id,
+            userType: "NGO",
+            type: "new_case_nearby",
             title: "New Alert in Your Area!",
-            body: `A new ${severity} severity report requires attention.`,
-          },
-          data: {
-            reportId: report._id.toString(),
-            type: "new_report",
-          },
-          tokens: tokens,
-        };
-        const response = await admin.messaging().sendEachForMulticast(message);
-        console.log("Notifications sent:", response.successCount);
-        console.log("Failures:", response.failureCount);
-        if (response.failureCount > 0) {
-          console.log(
-            "Failed tokens:",
-            response.responses.filter((r) => !r.success)
-          );
+            message: `A new ${severity} severity report requires attention.`,
+            data: {
+              reportId: report._id.toString(),
+              description: report.description,
+            },
+            icon: "warning",
+          });
         }
       }
     } catch (notifyErr) {
@@ -206,6 +232,22 @@ export const claimReport = async (req, res, next) => {
         await admin.messaging().send(message);
         console.log("Reporter notified");
       }
+
+      // Create database notification
+      await createNotification({
+        userId: report.reporter_id,
+        userType: "Reporter",
+        type: "case_claimed",
+        title: "Help is on the way!",
+        message: `Your report has been claimed by ${
+          req.user.name || "an NGO"
+        }.`,
+        data: {
+          reportId: report._id.toString(),
+          description: report.description,
+        },
+        icon: "info",
+      });
     } catch (notifyErr) {
       console.error("Notification error:", notifyErr);
     }
@@ -262,7 +304,47 @@ export const resolveReport = async (req, res, next) => {
     report.resolution_images = proofUrls;
     await report.save();
 
-    // 4. Give Karma to Reporter!
+    // 4. Notify reporter
+    try {
+      const reporter = await Reporter.findById(report.reporter_id).select(
+        "fcmToken"
+      );
+
+      // Send Firebase notification
+      if (reporter?.fcmToken) {
+        await admin.messaging().send({
+          notification: {
+            title: "Case Resolved! 🎉",
+            body: `Your report has been resolved by ${
+              req.user.name || "an NGO"
+            }. You earned 20 karma points!`,
+          },
+          data: {
+            reportId: report._id.toString(),
+            type: "case_resolved",
+          },
+          token: reporter.fcmToken,
+        });
+      }
+
+      // Create database notification
+      await createNotification({
+        userId: report.reporter_id,
+        userType: "Reporter",
+        type: "case_resolved",
+        title: "Case Resolved! 🎉",
+        message: `Your report has been resolved. You earned 20 karma points!`,
+        data: {
+          reportId: report._id.toString(),
+          description: report.description,
+        },
+        icon: "success",
+      });
+    } catch (notifyErr) {
+      console.error("Notification error:", notifyErr);
+    }
+
+    // 5. Give Karma to Reporter!
     await mongoose.model("Reporter").findByIdAndUpdate(report.reporter_id, {
       $inc: {
         karma_points: 20,
@@ -280,7 +362,7 @@ export const resolveReport = async (req, res, next) => {
     if (io) {
       io.emit("report_resolved", {
         reportId: report._id,
-        message: "Case Resolved! 🎉",
+        message: "Case Resolved!",
       });
     }
 

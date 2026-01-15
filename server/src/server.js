@@ -49,10 +49,21 @@ io.on("connection", (socket) => {
   // Join user-specific room
   socket.on("join", (userId) => {
     socket.join(`user_${userId}`);
-    console.log(`User ${userId} joined their room`);
+    console.log(`👥 User ${userId} joined room: user_${userId}`);
+    
+    // Send confirmation
+    socket.emit("joined", { userId, room: `user_${userId}` });
+  });
+
+  // Mark notification as read
+  socket.on("mark_read", async (notificationId) => {
+    // This will be handled by API, but you can also do it here
+    console.log(`Notification ${notificationId} marked as read`);
   });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
+
+global.io = io; // Make io accessible globally for services

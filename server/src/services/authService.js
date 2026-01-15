@@ -6,6 +6,7 @@ import NGO from "../models/ngoModel.js";
 import Admin from "../models/adminModel.js";
 import PendingRegistration from "../models/pendingRegistrationModel.js";
 import sendEmail from "../utils/email.js";
+import { reverseGeocode } from "../utils/geocode.js";
 
 // Helper to generate Token
 const generateToken = (id, role) => {
@@ -135,6 +136,8 @@ export const registerNGO = async (data) => {
     longitude,
   } = data;
 
+  const address = await reverseGeocode(latitude, longitude);
+
   const existing = await NGO.findOne({
     $or: [{ email }, { registration_number }],
   });
@@ -151,6 +154,7 @@ export const registerNGO = async (data) => {
     registration_number,
     owner_name: name,
     location: { type: "Point", coordinates: [longitude, latitude] },
+    hq_address: address || undefined,
   });
 
   return {
@@ -162,6 +166,8 @@ export const registerNGO = async (data) => {
 // 3. Admin: Force Create Trusted NGO (Bypasses Verification)
 export const createTrustedNGO = async (data, adminId) => {
   const { name, email, phone, password, latitude, longitude } = data;
+
+  const address = await reverseGeocode(latitude, longitude);
 
   const existing = await NGO.findOne({ email: data.email });
   if (existing) throw new Error("Email already registered");
@@ -177,6 +183,7 @@ export const createTrustedNGO = async (data, adminId) => {
       data.registration_number || `ADMIN_VERIFIED_${Date.now()}`,
     owner_name: "Admin Added",
     location: { type: "Point", coordinates: [longitude, latitude] },
+    hq_address: address || undefined,
     verification_status: "verified",
   });
 
@@ -298,10 +305,14 @@ export const updateUserProfile = async (userId, updateData) => {
   // NGO Specific Updates
   if (role === "ngo") {
     if (latitude && longitude) {
+      const address = await reverseGeocode(latitude, longitude);
       user.location = {
         type: "Point",
         coordinates: [parseFloat(longitude), parseFloat(latitude)],
       };
+      if (address) {
+        user.hq_address = address;
+      }
     }
 
     if (website !== undefined) user.website = website;

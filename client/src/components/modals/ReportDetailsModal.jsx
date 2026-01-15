@@ -1,17 +1,6 @@
-import { useEffect, useState } from "react";
 import { HiX, HiLocationMarker } from "react-icons/hi";
-import { reverseGeocode } from "../../utils/geocode";
 
 const ReportDetailsModal = ({ report, onClose, onUnflag, onDelete }) => {
-  const [address, setAddress] = useState("");
-
-  useEffect(() => {
-    if (report?.location?.coordinates) {
-      const [lng, lat] = report.location.coordinates;
-      reverseGeocode(lat, lng).then(setAddress);
-    }
-  }, [report]);
-
   if (!report) return null;
 
   const StatusBadge = ({ status }) => {
@@ -103,7 +92,9 @@ const ReportDetailsModal = ({ report, onClose, onUnflag, onDelete }) => {
 
           <div>
             <label className="text-xs text-gray-500 uppercase">Location</label>
-            <p className="text-gray-800">{address || "Loading address..."}</p>
+            <p className="text-gray-800">
+              {report?.address?.fullAddress || "Address not available"}
+            </p>
             <button
               onClick={() => {
                 const [lng, lat] = report.location.coordinates;

@@ -83,7 +83,12 @@ const NGOProfile = () => {
               <div className="flex flex-wrap items-center gap-4 text-primary-200">
                 <div className="flex items-center gap-2">
                   <HiLocationMarker className="w-5 h-5" />
-                  <span>Serves {ngo.service_radius_km}km radius</span>
+                  <span>
+                    {ngo.hq_address?.city || ngo.hq_address?.locality
+                      ? `${ngo.hq_address.city || ngo.hq_address.locality} • `
+                      : ""}
+                    Serves {ngo.service_radius_km}km radius
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <HiCalendar className="w-5 h-5" />

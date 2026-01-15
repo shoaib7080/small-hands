@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { HiX, HiLocationMarker, HiSearch } from "react-icons/hi";
 import api from "../../services/api";
-import { reverseGeocode } from "../../utils/geocode";
 import ReportDetailsModal from "../../components/modals/ReportDetailsModal";
 
 const AdminReports = () => {
@@ -23,7 +22,6 @@ const AdminReports = () => {
     totalPages: 0,
   });
   const [selectedReport, setSelectedReport] = useState(null);
-  const [reportAddress, setReportAddress] = useState("");
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -52,13 +50,6 @@ const AdminReports = () => {
     };
     fetchReports();
   }, [filters, pagination.page]);
-
-  useEffect(() => {
-    if (selectedReport?.location?.coordinates) {
-      const [lng, lat] = selectedReport.location.coordinates;
-      reverseGeocode(lat, lng).then(setReportAddress);
-    }
-  }, [selectedReport]);
 
   const handleUnflag = async (id) => {
     try {

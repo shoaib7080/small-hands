@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { HiLocationMarker, HiX } from "react-icons/hi";
 import api from "../../services/api";
-import { reverseGeocode } from "../../utils/geocode";
 import Input from "../../components/common/Input";
 import ReportHistoryModal from "./ReportHistoryModal";
 import MapContainer, { MapMarker } from "../../components/map/MapContainer";
@@ -14,9 +13,11 @@ const AdminNGOs = () => {
   const [loading, setLoading] = useState(false);
   const [historyTarget, setHistoryTarget] = useState(null);
   const [selectedNGO, setSelectedNGO] = useState(null);
-  const [ngoAddress, setNgoAddress] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("name");
+  // Map Selection State
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null); // { lat, lng }
 
   // Form for Manual Creation
   const {
@@ -27,10 +28,6 @@ const AdminNGOs = () => {
     watch,
     formState: { errors },
   } = useForm();
-
-  // Map Selection State
-  const [showMapModal, setShowMapModal] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null); // { lat, lng }
 
   const handleMapSelect = (latlng) => {
     setSelectedLocation({ lat: latlng.lat, lng: latlng.lng });
@@ -65,15 +62,6 @@ const AdminNGOs = () => {
     };
     fetchNGOs();
   }, [activeTab, searchTerm]);
-
-  useEffect(() => {
-    if (selectedNGO?.location.coordinates) {
-      const [lng, lat] = selectedNGO.location.coordinates;
-      reverseGeocode(lat, lng).then(setNgoAddress);
-    } else {
-      setNgoAddress("No location data available");
-    }
-  }, [selectedNGO]);
 
   useEffect(() => {
     const socket = window.socket;
@@ -510,13 +498,15 @@ const AdminNGOs = () => {
                   </label>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-gray-800 flex-1">
-                      {ngoAddress || "Loading address..."}
+                      {selectedNGO.hq_address?.fullAddress ||
+                        (selectedNGO.location?.coordinates
+                          ? `${selectedNGO.location.coordinates[1]}, ${selectedNGO.location.coordinates[0]}`
+                          : "No location data")}
                     </p>
-                    {selectedNGO.hq_location?.coordinates && (
+                    {selectedNGO.location?.coordinates && (
                       <button
                         onClick={() => {
-                          const [lng, lat] =
-                            selectedNGO.hq_location.coordinates;
+                          const [lng, lat] = selectedNGO.location?.coordinates;
                           window.open(
                             `https://www.google.com/maps?q=${lat},${lng}`,
                             "_blank"

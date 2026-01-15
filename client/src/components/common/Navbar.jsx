@@ -13,6 +13,7 @@ import {
 } from "react-icons/hi";
 import LoadingOverlay from "./LoadingOverlay";
 import ReportIssueModal from "./ReportIssueModal";
+import NotificationBell from "./NotificationBell.jsx";
 
 const Navbar = () => {
   const user = (() => {
@@ -121,9 +122,7 @@ const Navbar = () => {
                 </button>
 
                 {/* Notification Icon */}
-                <button className="text-text-secondary hover:text-primary-600 p-2 rounded-lg hover:bg-background transition-colors">
-                  <HiBell className="w-5 h-5" />
-                </button>
+                <NotificationBell />
 
                 {/* Profile Dropdown */}
                 <div className="relative">
@@ -179,7 +178,8 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex items-center md:hidden">
+          <div className="flex items-center gap-2 md:hidden">
+            {user && <NotificationBell />}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-text-secondary focus:outline-none p-2"
@@ -265,6 +265,13 @@ const Navbar = () => {
                 </button>
               </>
             )}
+            <button
+              onClick={() => setShowIssueModal(true)}
+              className="text-text-secondary hover:text-primary-600 p-2 rounded-lg hover:bg-background transition-colors"
+              title="Report an Issue"
+            >
+              Report an issue
+            </button>
           </div>
         </div>
       )}
